@@ -115,8 +115,5 @@ webencodings==0.5.1
 websocket-client==1.8.0
 Werkzeug==2.2.3
 zipp==3.17.0
-
-
-
+python-dotenv
 mysql-connector-python==8.1.0
-mysql-connector-python-rf==2.2.2

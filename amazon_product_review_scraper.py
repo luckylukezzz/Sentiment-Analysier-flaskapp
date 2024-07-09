@@ -176,11 +176,3 @@ class amazon_product_review_scraper:
         proxies_lst = [{'http':'http://'+proxy['ip']+':'+proxy['port']} for proxy in proxies]
         return proxies_lst
     
-## Important commands:
-
-# 1. display html
-# from IPython.core.display import display, HTML
-# display(HTML('<h1>Hello, world!</h1>'))
-
-# 2. check request header
-# url = 'http://whatismyheader.com/'
