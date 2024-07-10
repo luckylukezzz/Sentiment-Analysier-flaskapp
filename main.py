@@ -1,32 +1,45 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request, jsonify
+import mysql.connector
+from mysql.connector import Error
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
-def home():
-    return jsonify({
-        'message': 'Welcome to the Analytics API. Use the /analytics endpoint to POST your data.'
-    })
+host = os.getenv('HOST')
+database = os.getenv('DATABASE')
+user = os.getenv('USER')
+password = os.getenv('PASSWORD')
+
+db = mysql.connector.connect(
+    host=host,
+    user=user,
+    password=password,
+    database=database,
+    connection_timeout=1000,
+)
+cursor = db.cursor(dictionary=True)
 
 
-@app.route('/analytics', methods=['POST'])
-def analytics():
-    # Get JSON data from the request
-    data = request.get_json()
-    
-    # Simple analytics logic: calculate the sum and average of a list of numbers
-    numbers = data.get('numbers', [])
-    if not numbers:
-        return jsonify({'error': 'No numbers provided'}), 400
-    
-    total = sum(numbers)
-    average = total / len(numbers)
-    
-    # Return the results as JSON
-    return jsonify({
-        'total': total,
-        'average': average
-    })
+@app.route('/search')
+def search_products():
+    search_term = request.args.get('term', '')
+    search_term = search_term.strip()
+    print(search_term)  # Prepare for SQL LIKE search
+    #query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
+
+    try:
+        if search_term:
+            query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
+        else:
+            query = "SELECT * FROM products LIMIT 10"
+        cursor.execute(query)
+        results = cursor.fetchall()
+        return jsonify(results)
+    except Error as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
