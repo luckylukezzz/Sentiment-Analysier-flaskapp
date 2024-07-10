@@ -17,7 +17,7 @@ db = mysql.connector.connect(
     user=user,
     password=password,
     database=database,
-    connection_timeout=60,
+    connection_timeout=1000,
 )
 cursor = db.cursor(dictionary=True)
 
@@ -27,10 +27,13 @@ def search_products():
     search_term = request.args.get('term', '')
     search_term = search_term.strip()
     print(search_term)  # Prepare for SQL LIKE search
-    query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
-    print(query)
-    try:
+    #query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
 
+    try:
+        if search_term:
+            query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
+        else:
+            query = "SELECT * FROM products LIMIT 10"
         cursor.execute(query)
         results = cursor.fetchall()
         return jsonify(results)
