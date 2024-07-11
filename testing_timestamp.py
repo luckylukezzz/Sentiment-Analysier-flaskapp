@@ -1,7 +1,7 @@
 import datetime
 
 # Unix timestamp in milliseconds
-timestamp = 1608426246701
+timestamp = 1717027200000
 
 # Convert to seconds
 timestamp_seconds = timestamp / 1000.0
