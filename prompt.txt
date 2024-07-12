@@ -1,10 +1,14 @@
 i have a html containing product reviews 
 i need to create json with review by review including this info
-star_rating
-review_title
-review_date
-review_body
-user_id
+parent-asin
+main_category
+title
+description
+features
+image
+categories
+store
+details    as json
 
 in the html review blocks in div containes with class  class="a-row a-spacing-none"
 inside anchor tag of class="a-size-base a-link-normal review-title a-color-base review-title-content a-text-bold"  theres is span with class="a-icon-alt"
