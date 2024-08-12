@@ -1,8 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 import random
+import mysql.connector
+import csv
+from bs4 import BeautifulSoup
+from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
+#get headers -------------------------------------------------------------------
 response = requests.get(
   url='https://headers.scrapeops.io/v1/browser-headers',
   params={
@@ -29,11 +38,10 @@ scrape_headers = response.json()
 # proxies_lst = [{'http': 'http://' + proxy['ip'] + ':' + proxy['port']} for proxy in proxies]
 # proxies_lst
 
-
-
-
 # proxy = random.choice(proxies_lst)
 
+
+#get reviews -----------------------------------------------------------------------------------------
 url ="http://www.amazon.com/dp/product-reviews/B00NLZUM36?pageNumber=1"
 response = requests.get(url, headers=scrape_headers["result"][0]  )
 
@@ -41,14 +49,25 @@ response = requests.get(url, headers=scrape_headers["result"][0]  )
 
 print(response.status_code)
 
-import requests
-import csv
-from bs4 import BeautifulSoup
-from datetime import datetime
 
 
+host = os.getenv('HOST')
+database = os.getenv('DATABASE')
+user = os.getenv('USER')
+password = os.getenv('PASSWORD')
+
+
+conn = mysql.connector.connect(
+    host=host,
+    user=user,
+    password=password,
+    database=database,
+    connection_timeout=1000,
+)
+cursor = conn.cursor()
+
+# Scraping and insertion logic
 soup = BeautifulSoup(response.text, 'html.parser')
-
 reviews = []
 parent_asin = "B00NLZUM36"
 # Find all review blocks
@@ -56,7 +75,7 @@ review_blocks = soup.find_all('div', class_='a-row a-spacing-none')
 
 for review_block in review_blocks:
     try:
-        rating = review_block.find('span', class_='a-icon-alt').text.split(' ')[0]  # Extract star rating
+        rating = float(review_block.find('span', class_='a-icon-alt').text.split(' ')[0])  # Extract star rating
         review_title = review_block.find('span', class_=None).text  # Extract review title
 
         review_date_full_str = review_block.find('span', {'data-hook': 'review-date'}).text
@@ -65,11 +84,9 @@ for review_block in review_blocks:
         review_date_ms = int(review_date.timestamp() * 1000)
 
         review_body = review_block.find('span', {'data-hook': 'review-body'}).text  # Extract review body
-
         review_text = f"{review_title}. {review_body}"
 
         user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]  # Extract user ID
-
         review = {
             'rating': rating,
             'text': review_text,
@@ -81,9 +98,25 @@ for review_block in review_blocks:
         }
 
         reviews.append(review)
+
+        # Prepare SQL insert statement
+        insert_stmt = """
+        INSERT INTO reviews (rating, text, parent_asin, user_id, timestamp)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        data = (rating, review_text, parent_asin, user_id, review_date_ms)
+
+        # Execute the SQL statement
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+
     except AttributeError:
         # Skip review blocks that don't match the expected structure
         continue
+
+# Close the cursor and connection
+cursor.close()
+conn.close()
 
 
 csv_file = 'reviews.csv'
