@@ -1,0 +1,26 @@
+i have a html containing product reviews 
+i need to create json with review by review including this info
+parent-asin
+main_category
+title
+description
+features
+image
+categories
+store
+details    as json
+
+in the html review blocks in div containes with class  class="a-row a-spacing-none"
+inside anchor tag of class="a-size-base a-link-normal review-title a-color-base review-title-content a-text-bold"  theres is span with class="a-icon-alt"
+containing star_rating (example: 5.0 out of 5 stars)
+in another span with no class there is the review_title
+outside of anchot tag and inside of the div,
+date is like this
+<span data-hook="review-date" class="a-size-base a-color-secondary review-date">Reviewed in the United States on May 3, 2024</span> 
+body is in 
+<span data-hook="review-body" class="a-size-base review-text review-text-content">
+and grab the user id from <a href="/gp/profile/amzn1.account.AHB6YA2LPFRHGKKLX4ZY4OY6FGFQ/ref=cm_cr_arp_d_gw_btm?ie=UTF8" class="a-profile" data-a-size="small">
+where AHB6YA2LPFRHGKKLX4ZY4OY6FGFQ is the user_id
+
+
+all these content for a review present in the div of class="a-row a-spacing-none" there are several reviwes present in the html 

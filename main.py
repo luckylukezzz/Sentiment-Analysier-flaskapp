@@ -3,9 +3,11 @@ import mysql.connector
 from mysql.connector import Error
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)
 
 host = os.getenv('HOST')
 database = os.getenv('DATABASE')
