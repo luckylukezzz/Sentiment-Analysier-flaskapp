@@ -41,7 +41,20 @@ product_links = list(set(product_links))
 if not product_links:
     print("No product links were found. There might be an issue with the scraping process.")
 else:
-    print(len(product_links))
-    for href in product_links:
-        print(href)
-        print("---")
+    asin_list = []
+
+    # Regular expression to extract 10-character ASINs
+    asin_pattern = re.compile(r'/dp/([A-Z0-9]{10})')
+
+    # Extract ASINs from URLs
+    for link in product_links:
+        match = asin_pattern.search(link)
+        if match:
+            asin_list.append(match.group(1))
+
+    print(asin_list)
+
+    # print(len(product_links))
+    # for href in product_links:
+    #     print(href)
+    #     print("---")
