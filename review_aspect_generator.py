@@ -1,13 +1,14 @@
 import mysql.connector
 from ABSA_model import AspectExtractor, SentimentAspectAnalyzer
+import os
 
-def establish_db_connection():
+def establish_db_connection(host, user, password, database):
     try:
         conn = mysql.connector.connect(
-            host="127.0.0.1",
-            user="root",
-            password="1234",
-            database="project_db"
+            host=host,
+            user=user,
+            password=password,
+            database=database
         )
         cursor = conn.cursor()
         print("Connected to MySQL")
@@ -31,7 +32,7 @@ def store_results(cursor, conn, sentiment_aspect, review_ids):
     print("Data updated successfully.")
 
 def main():
-    data, conn, cursor = establish_db_connection()
+    data, conn, cursor = establish_db_connection(user=os.getenv('USER'), password=os.getenv('PASSWORD'), host=os.getenv('HOST'), database=os.getenv('DATABASE'))
     if not data:
         return
 
