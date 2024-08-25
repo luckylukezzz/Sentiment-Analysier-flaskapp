@@ -9,6 +9,7 @@ from components.scrape_ops_headers import get_headers
 from dotenv import load_dotenv
 import logging
 import re
+import time
 
 # Set up logging
 logging.basicConfig(filename='scraper.log', level=logging.INFO,
@@ -49,7 +50,7 @@ def get_db_connection():
         logging.error(f"Database connection failed: {err}")
         return None
 
-def reviews_into_sql(asin):
+def reviews_into_sql(asin, max_pages=15, delay=5):
     conn = get_db_connection()
     if not conn:
         return
@@ -58,72 +59,96 @@ def reviews_into_sql(asin):
     
     try:
         scrape_headers = get_headers()
-        url = f"http://www.amazon.com/dp/product-reviews/{asin}?pageNumber=1"
-        response = requests.get(url, headers=scrape_headers["result"][0])
-        
-        if response.status_code != 200:
-            logging.error(f"Failed to fetch page. Status code: {response.status_code}")
-            return
-
-        soup = BeautifulSoup(response.text, 'html.parser')
+        page = 1
+        total_reviews = 0
+        duplicate_count = 0
         reviews = []
-        parent_asin = asin
 
-        review_blocks = soup.find_all('div', class_='a-row a-spacing-none')
+        while page <= max_pages:
+            url = f"http://www.amazon.com/dp/product-reviews/{asin}?pageNumber={page}"
+            response = requests.get(url, headers=scrape_headers["result"][0])
+            
+            if response.status_code != 200:
+                logging.error(f"Failed to fetch page {page}. Status code: {response.status_code}")
+                break
 
-        for review_block in review_blocks:
-            try:
-                rating = float(review_block.find('span', class_='a-icon-alt').text.split(' ')[0])
-                review_title = review_block.find('span', class_=None).text
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            parent_asin = asin
 
-                review_date_full_str = review_block.find('span', {'data-hook': 'review-date'}).text
-                review_date_str = review_date_full_str.split('on ')[-1]
-                review_date = datetime.strptime(review_date_str, '%B %d, %Y')
-                review_date_ms = int(review_date.timestamp() * 1000)
+            review_blocks = soup.find_all('div', class_='a-row a-spacing-none')
 
-                review_body = review_block.find('span', {'data-hook': 'review-body'}).text
-                review_text = clean_text(f"{review_title}. {review_body}")
+            if not review_blocks:
+                logging.info(f"No reviews found on page {page}. Ending scraping.")
+                break
 
-                user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]
+            page_reviews = 0
 
-                review = {
-                    'rating': rating,
-                    'text': review_text,
-                    'parent_asin': parent_asin,
-                    'user_id': user_id,
-                    'timestamp': review_date_ms,
-                }
+            for review_block in review_blocks:
+                try:
+                    rating = float(review_block.find('span', class_='a-icon-alt').text.split(' ')[0])
+                    review_title = review_block.find('span', class_=None).text
 
-                check_stmt = """
-                SELECT COUNT(*) FROM reviews 
-                WHERE user_id = %s AND timestamp = %s
-                """
-                cursor.execute(check_stmt, (user_id, review_date_ms))
-                if cursor.fetchone()[0] > 0:
-                    logging.info(f"Skipped duplicate review: user_id={user_id}, timestamp={review_date_ms}")
+                    review_date_full_str = review_block.find('span', {'data-hook': 'review-date'}).text
+                    review_date_str = review_date_full_str.split('on ')[-1]
+                    review_date = datetime.strptime(review_date_str, '%B %d, %Y')
+                    review_date_ms = int(review_date.timestamp() * 1000)
+
+                    review_body = review_block.find('span', {'data-hook': 'review-body'}).text
+                    review_text = clean_text(f"{review_title}. {review_body}")
+
+                    user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]
+
+                    review = {
+                        'rating': rating,
+                        'text': review_text,
+                        'parent_asin': parent_asin,
+                        'user_id': user_id,
+                        'timestamp': review_date_ms,
+                    }
+
+                    check_stmt = """
+                    SELECT COUNT(*) FROM reviews 
+                    WHERE user_id = %s AND timestamp = %s
+                    """
+                    cursor.execute(check_stmt, (user_id, review_date_ms))
+                    if cursor.fetchone()[0] > 0:
+                        logging.info(f"Skipped duplicate review: user_id={user_id}, timestamp={review_date_ms}")
+                        duplicate_count += 1
+                        continue
+
+                    reviews.append(review)
+                    # Insert the review if it's not a duplicate
+                    insert_stmt = """
+                    INSERT INTO reviews (rating, text, parent_asin, user_id, timestamp)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """
+                    data = (rating, review_text, parent_asin, user_id, review_date_ms)
+
+                    cursor.execute(insert_stmt, data)
+                    conn.commit()
+                    reviews.append(review)
+                    logging.info(f"Inserted new review: user_id={user_id}, timestamp={review_date_ms}")
+                    page_reviews += 1
+                    total_reviews += 1
+
+                except AttributeError as e:
+                    logging.warning(f"Skipped a review due to AttributeError: {e}")
                     continue
-                reviews.append(review)
-            # Insert the review if it's not a duplicate
-                insert_stmt = """
-                INSERT INTO reviews (rating, text, parent_asin, user_id, timestamp)
-                VALUES (%s, %s, %s, %s, %s)
-                """
-                data = (rating, review_text, parent_asin, user_id, review_date_ms)
+                except mysql.connector.Error as err:
+                    logging.error(f"MySQL error: {err}")
+                    conn.rollback()
+                except Exception as e:
+                    logging.error(f"Unexpected error: {e}")
+                    conn.rollback()
 
-                cursor.execute(insert_stmt, data)
-                conn.commit()
-                logging.info(f"Inserted new review: user_id={user_id}, timestamp={review_date_ms}")
-
-            except AttributeError as e:
-                logging.warning(f"Skipped a review due to AttributeError: {e}")
-                continue
-            except mysql.connector.Error as err:
-                logging.error(f"MySQL error: {err}")
-                conn.rollback()
-            except Exception as e:
-                logging.error(f"Unexpected error: {e}")
-                conn.rollback()
-
+            logging.info(f"Page {page}: {page_reviews} reviews added, {duplicate_count} duplicates skipped")
+            
+            if page_reviews == 0:
+                logging.info("No new reviews found on this page. Ending scraping.")
+                break
+            page += 1
+            time.sleep(delay)
         # Write to CSV
         try:
             csv_file = 'reviews.csv'
@@ -136,6 +161,8 @@ def reviews_into_sql(asin):
         except IOError as e:
             logging.error(f"Error writing to CSV: {e}")
 
+        logging.info(f"Scraping completed. Total reviews added: {total_reviews}")
+
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
     finally:
@@ -145,6 +172,6 @@ def reviews_into_sql(asin):
 
 if __name__ == "__main__":
     try:
-        reviews_into_sql('B01M0RU6LY')
+        reviews_into_sql('B09772FZTX', max_pages=15, delay=5)
     except Exception as e:
         logging.error(f"Main function error: {e}")
