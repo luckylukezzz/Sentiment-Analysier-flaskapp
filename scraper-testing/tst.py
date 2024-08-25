@@ -12,7 +12,7 @@ response = requests.get(
 scrape_headers = response.json()
 print(scrape_headers)
 
-url ="http://www.amazon.com/dp/product-reviews/B00NLZUM36?pageNumber=1"
+url ="https://www.amazon.com//dp/B0CWS8MNW1"
 response = requests.get(url, headers=scrape_headers["result"][0]  )
 
 # , proxies= {'http': 'http://124.6.155.170:3131'}
