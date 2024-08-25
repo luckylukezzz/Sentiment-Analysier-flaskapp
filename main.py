@@ -23,25 +23,73 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor(dictionary=True)
 
-
+    
 @app.route('/search')
 def search_products():
-    search_term = request.args.get('term', '')
-    search_term = search_term.strip()
-    print(search_term)  # Prepare for SQL LIKE search
-    #query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
+    asin = request.args.get('asin', '').strip()
 
     try:
-        if search_term:
-            query = f"SELECT * FROM products WHERE title LIKE '%{search_term}%' LIMIT 10"
+        if asin:
+            # Query to get product details based on ASIN
+            query = "SELECT * FROM products WHERE parent_asin LIKE %s"  # Passing the search term as a parameter to avoid SQL injection
+            cursor.execute(query, (f"%{asin}%",))
         else:
             query = "SELECT * FROM products LIMIT 10"
-        cursor.execute(query)
-        results = cursor.fetchall()
-        return jsonify(results)
+            cursor.execute(query)
+        
+        product_details = cursor.fetchall()
+
+        if asin:
+            # Query to get the sentiment data over time for the given parent_asin
+            sentiment_query = """
+                SELECT 
+                    YEAR(FROM_UNIXTIME(timestamp / 1000)) AS year,
+                    AVG(pos_score) AS avg_positive_score,
+                    AVG(neg_score) AS avg_negative_score,
+                    AVG(neu_score) AS avg_neutral_score,
+                    COUNT(*) AS review_count
+                FROM 
+                    reviews
+                WHERE 
+                    parent_asin = %s
+                GROUP BY 
+                    year
+                ORDER BY 
+                    year;
+            """
+            cursor.execute(sentiment_query, (asin,))
+            sentiment_over_time = cursor.fetchall()
+
+            # Query to get the sentiment distribution for the given parent_asin
+            distribution_query = """
+                SELECT 
+                    SUM(CASE WHEN pos_score >= GREATEST(neu_score, neg_score) THEN 1 ELSE 0 END) AS positive,
+                    SUM(CASE WHEN neu_score >= GREATEST(pos_score, neg_score) THEN 1 ELSE 0 END) AS neutral,
+                    SUM(CASE WHEN neg_score >= GREATEST(pos_score, neu_score) THEN 1 ELSE 0 END) AS negative
+                FROM reviews
+                WHERE parent_asin = %s ;
+            """
+            cursor.execute(distribution_query, (asin,))
+            sentiment_distribution = cursor.fetchone()
+
+            # Prepare the response
+            response = {
+                "product_details": product_details,
+                "sentiment_over_time": sentiment_over_time,
+                "sentiment_distribution": sentiment_distribution
+            }
+        else:
+            # Prepare the response for when no parent_asin is provided
+            response = {"products_details": product_details,
+                        "sentiment_over_time": [],
+                        "sentiment_distribution": {}
+                        }
+
+        return jsonify(response)
+        
+
     except Error as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
