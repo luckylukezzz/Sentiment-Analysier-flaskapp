@@ -3,12 +3,16 @@ from bs4 import BeautifulSoup
 import random
 import mysql.connector
 import csv
-from bs4 import BeautifulSoup
 from datetime import datetime
 import os
 from components.scrape_ops_headers import get_headers
 from dotenv import load_dotenv
-import re 
+import logging
+import re
+
+# Set up logging
+logging.basicConfig(filename='scraper.log', level=logging.INFO,
+                    format='%(asctime)s:%(levelname)s:%(message)s')
 
 load_dotenv()
 
@@ -17,19 +21,8 @@ database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
 
-
-conn = mysql.connector.connect(
-    host=host,
-    user=user,
-    password=password,
-    database=database,
-    
-)
-cursor = conn.cursor()
-print("db con okay")
-
 def clean_text(text):
-    # Remove emojis
+    # Remove emojis and other problematic characters
     emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -40,73 +33,118 @@ def clean_text(text):
         "]+", flags=re.UNICODE)
     return emoji_pattern.sub(r'', text)
 
-#get reviews -----------------------------------------------------------------------------------------
+def get_db_connection():
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
+            charset='utf8mb4',
+            collation='utf8mb4_unicode_ci'
+        )
+        logging.info("Database connection established successfully")
+        return conn
+    except mysql.connector.Error as err:
+        logging.error(f"Database connection failed: {err}")
+        return None
+
 def reviews_into_sql(asin):
-    scrape_headers= get_headers()
-    print(scrape_headers["result"][0])
-    url =f"http://www.amazon.com/dp/product-reviews/{asin}?pageNumber=1"
-    response = requests.get(url, headers=scrape_headers["result"][0]  )
+    conn = get_db_connection()
+    if not conn:
+        return
 
-    # , proxies= {'http': 'http://124.6.155.170:3131'}
+    cursor = conn.cursor()
+    
+    try:
+        scrape_headers = get_headers()
+        url = f"http://www.amazon.com/dp/product-reviews/{asin}?pageNumber=1"
+        response = requests.get(url, headers=scrape_headers["result"][0])
+        
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch page. Status code: {response.status_code}")
+            return
 
-    print(response.status_code)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        reviews = []
+        parent_asin = asin
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    reviews = []
-    parent_asin = asin
+        review_blocks = soup.find_all('div', class_='a-row a-spacing-none')
 
-    # Find all review blocks
-    review_blocks = soup.find_all('div', class_='a-row a-spacing-none')
+        for review_block in review_blocks:
+            try:
+                rating = float(review_block.find('span', class_='a-icon-alt').text.split(' ')[0])
+                review_title = review_block.find('span', class_=None).text
 
-    for review_block in review_blocks:
+                review_date_full_str = review_block.find('span', {'data-hook': 'review-date'}).text
+                review_date_str = review_date_full_str.split('on ')[-1]
+                review_date = datetime.strptime(review_date_str, '%B %d, %Y')
+                review_date_ms = int(review_date.timestamp() * 1000)
+
+                review_body = review_block.find('span', {'data-hook': 'review-body'}).text
+                review_text = clean_text(f"{review_title}. {review_body}")
+
+                user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]
+
+                review = {
+                    'rating': rating,
+                    'text': review_text,
+                    'parent_asin': parent_asin,
+                    'user_id': user_id,
+                    'timestamp': review_date_ms,
+                }
+
+                check_stmt = """
+                SELECT COUNT(*) FROM reviews 
+                WHERE user_id = %s AND timestamp = %s
+                """
+                cursor.execute(check_stmt, (user_id, review_date_ms))
+                if cursor.fetchone()[0] > 0:
+                    logging.info(f"Skipped duplicate review: user_id={user_id}, timestamp={review_date_ms}")
+                    continue
+                reviews.append(review)
+            # Insert the review if it's not a duplicate
+                insert_stmt = """
+                INSERT INTO reviews (rating, text, parent_asin, user_id, timestamp)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+                data = (rating, review_text, parent_asin, user_id, review_date_ms)
+
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                logging.info(f"Inserted new review: user_id={user_id}, timestamp={review_date_ms}")
+
+            except AttributeError as e:
+                logging.warning(f"Skipped a review due to AttributeError: {e}")
+                continue
+            except mysql.connector.Error as err:
+                logging.error(f"MySQL error: {err}")
+                conn.rollback()
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
+                conn.rollback()
+
+        # Write to CSV
         try:
-            rating = float(review_block.find('span', class_='a-icon-alt').text.split(' ')[0])  # Extract star rating
-            review_title = review_block.find('span', class_=None).text  # Extract review title
+            csv_file = 'reviews.csv'
+            csv_headers = ['rating', 'text', 'parent_asin', 'user_id', 'timestamp']
+            with open(csv_file, 'w', newline='', encoding='utf-8') as file:
+                writer = csv.DictWriter(file, fieldnames=csv_headers)
+                writer.writeheader()
+                writer.writerows(reviews)
+            logging.info(f'Reviews extracted and saved to {csv_file}')
+        except IOError as e:
+            logging.error(f"Error writing to CSV: {e}")
 
-            review_date_full_str = review_block.find('span', {'data-hook': 'review-date'}).text
-            review_date_str = review_date_full_str.split('on ')[-1]  # Remove prefix 'Reviewed in the United States on'
-            review_date = datetime.strptime(review_date_str, '%B %d, %Y') # Extract review date
-            review_date_ms = int(review_date.timestamp() * 1000)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+        logging.info("Database connection closed")
 
-            review_body = review_block.find('span', {'data-hook': 'review-body'}).text  # Extract review body
-            review_text = f"{review_title}. {review_body}"
-            review_text = clean_text(review_text)
-            user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]  # Extract user ID
-            review = {
-                'rating': rating,
-                'text': review_text,
-                'parent_asin': parent_asin,
-                'user_id': user_id,
-                'timestamp': review_date_ms,
-            }
-
-            reviews.append(review)
-           
-            insert_stmt = """
-            INSERT INTO reviews (rating, text, parent_asin, user_id, timestamp)
-            VALUES (%s, %s, %s, %s, %s)
-            """
-            data = (rating, review_text, parent_asin, user_id, review_date_ms)
-
-            cursor.execute(insert_stmt, data)
-            conn.commit()
-
-        except AttributeError:
-            # Skip review blocks that don't match the expected structure
-            continue
-
-    cursor.close()
-    conn.close()
-
-    csv_file = 'reviews.csv'
-
-    csv_headers = ['rating', 'text', 'parent_asin', 'user_id', 'timestamp']
-
-    with open(csv_file, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=csv_headers)
-        writer.writeheader()
-        writer.writerows(reviews)
-
-    print(f'Reviews extracted and saved to {csv_file}')
-
-reviews_into_sql('B01M0RU6LY')
+if __name__ == "__main__":
+    try:
+        reviews_into_sql('B01M0RU6LY')
+    except Exception as e:
+        logging.error(f"Main function error: {e}")

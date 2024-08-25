@@ -1,0 +1,16 @@
+2024-08-25 23:24:19,619:INFO:Database connection established successfully
+2024-08-25 23:24:21,672:INFO:Reviews extracted and saved to reviews.csv
+2024-08-25 23:24:21,673:INFO:Database connection closed
+2024-08-25 23:49:54,673:INFO:Database connection established successfully
+2024-08-25 23:49:56,897:INFO:Skipped duplicate review: user_id=AEZDJV3ADR36Z4DTTT6N3LI4VZVA, timestamp=1713033000000
+2024-08-25 23:49:56,898:INFO:Skipped duplicate review: user_id=AGMNF35NFST234SAMBIKIS4AT7KA, timestamp=1712773800000
+2024-08-25 23:49:56,898:INFO:Skipped duplicate review: user_id=AEI4K27IRYOF7AE2VZUEYU63ZPYQ, timestamp=1697308200000
+2024-08-25 23:49:56,899:INFO:Skipped duplicate review: user_id=AE2QHU7DL44PKH3HHEE46VOGTJCQ, timestamp=1551465000000
+2024-08-25 23:49:57,000:INFO:Skipped duplicate review: user_id=AGWB4F74ER6FISJQKYS2FG6BVSTQ, timestamp=1524249000000
+2024-08-25 23:49:57,000:INFO:Skipped duplicate review: user_id=AFGAA6XAKXPPDV776OUTONJXJMRA, timestamp=1629743400000
+2024-08-25 23:49:57,001:INFO:Skipped duplicate review: user_id=AFMI2L2RE2YHPVYNDHIP3DB57QJA, timestamp=1611167400000
+2024-08-25 23:49:57,002:INFO:Skipped duplicate review: user_id=AHN3DK5KVZ2EZ4362WEMPZRRVO7A, timestamp=1628015400000
+2024-08-25 23:49:57,003:INFO:Skipped duplicate review: user_id=AHNUQHG6TA37CU62QRGLFI7EJ3NA, timestamp=1554057000000
+2024-08-25 23:49:57,003:INFO:Skipped duplicate review: user_id=AFT6ZLVMWHWQHQ765G5CPHXMWNNQ, timestamp=1692297000000
+2024-08-25 23:49:57,004:INFO:Reviews extracted and saved to reviews.csv
+2024-08-25 23:49:57,005:INFO:Database connection closed
