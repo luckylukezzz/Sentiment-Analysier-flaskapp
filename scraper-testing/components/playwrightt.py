@@ -32,29 +32,29 @@ def get_product_links(url):
         finally:
             browser.close()
 
-# URL of the Amazon search results page
-url = "https://www.amazon.com/s?k=playstation+4&crid=5YWS6IRECKWQ&sprefix=%2Caps%2C308&ref=nb_sb_ss_recent_1_0_recent"
 
-product_links = get_product_links(url)
-product_links = list(set(product_links))
+def get_asin_list(searchTerm):
+    searchTermProcessed = "+".join(searchTerm.split())
+    url = f"https://www.amazon.com/s?k={searchTermProcessed}"
 
-if not product_links:
-    print("No product links were found. There might be an issue with the scraping process.")
-else:
-    asin_list = []
+    product_links = get_product_links(url)
+    product_links = list(set(product_links))
 
-    # Regular expression to extract 10-character ASINs
-    asin_pattern = re.compile(r'/dp/([A-Z0-9]{10})')
+    if not product_links:
+        return("No product links were found. There might be an issue with the scraping process.")
+    else:
+        asin_list = []
 
-    # Extract ASINs from URLs
-    for link in product_links:
-        match = asin_pattern.search(link)
-        if match:
-            asin_list.append(match.group(1))
+        asin_pattern = re.compile(r'/dp/([A-Z0-9]{10})')
 
-    print(asin_list)
+    
+        for link in product_links:
+            match = asin_pattern.search(link)
+            if match:
+                asin_list.append(match.group(1))
 
-    # print(len(product_links))
-    # for href in product_links:
-    #     print(href)
-    #     print("---")
+        return(asin_list)
+
+
+print(get_asin_list("ps4"))
+asins= ['B07HHW8C4V', 'B079FPFV3X', 'B01M0RU6LY', 'B00BGA9WK2', 'B07PQPFHKN', 'B098V9PT4N', 'B00HUXPZPK', 'B0B4X5QWQB', 'B0CZLB3S83', 'B0BP3ZK9K9', 'B0C48HN4Z9', 'B012CZ41ZA', 'B075YBBQMM', 'B07JMNNPXC', 'B09772FZTX', 'B07K14XKZH', 'B0716XFVBP']

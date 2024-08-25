@@ -19,3 +19,5 @@ response = requests.get(url, headers=scrape_headers["result"][0]  )
 
 print(response.status_code)
 print(response.text)
+
+
