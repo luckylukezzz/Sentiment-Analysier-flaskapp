@@ -10,15 +10,18 @@ app = Flask(__name__)
 CORS(app)
 
 host = os.getenv('HOST')
+port= os.getenv('PORT')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
 
 db = mysql.connector.connect(
     host=host,
+    port=port,
     user=user,
     password=password,
     database=database,
+    ssl_disabled=False,
     connection_timeout=1000,
 )
 cursor = db.cursor(dictionary=True)
