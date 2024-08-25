@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 from components.scrape_ops_headers import get_headers
 from dotenv import load_dotenv
+import re 
 
 load_dotenv()
 
@@ -22,9 +23,22 @@ conn = mysql.connector.connect(
     user=user,
     password=password,
     database=database,
+    
 )
 cursor = conn.cursor()
 print("db con okay")
+
+def clean_text(text):
+    # Remove emojis
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', text)
 
 #get reviews -----------------------------------------------------------------------------------------
 def reviews_into_sql(asin):
@@ -56,7 +70,7 @@ def reviews_into_sql(asin):
 
             review_body = review_block.find('span', {'data-hook': 'review-body'}).text  # Extract review body
             review_text = f"{review_title}. {review_body}"
-
+            review_text = clean_text(review_text)
             user_id = review_block.find('a', class_='a-profile')['href'].split('.')[2].split('/')[0]  # Extract user ID
             review = {
                 'rating': rating,
@@ -95,4 +109,4 @@ def reviews_into_sql(asin):
 
     print(f'Reviews extracted and saved to {csv_file}')
 
-reviews_into_sql('B098V9PT4N')
+reviews_into_sql('B01M0RU6LY')
