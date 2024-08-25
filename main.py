@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS
 
+from process_reviews import ReviewProcessor
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -96,3 +98,7 @@ def search_products():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    parent_asin = 'B07CQNF813'  # Example ASIN; replace with actual value
+    api_token = os.getenv("GROQ_API_KEY")
+    processor = ReviewProcessor(parent_asin, api_token)
+    processor.process()
