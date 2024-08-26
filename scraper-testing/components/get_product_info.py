@@ -2,7 +2,10 @@ from playwright.sync_api import sync_playwright
 import time
 import json
 import csv
+import os
 from bs4 import BeautifulSoup
+import mysql.connector
+from mysql.connector import Error
 
 def get_product_html(asin):
     url = f"https://www.amazon.com/dp/{asin}/"
@@ -12,7 +15,7 @@ def get_product_html(asin):
         page = browser.new_page()
         
         try:
-            page.goto(url)
+            page.goto(url, timeout=60000)  # Increased timeout to 60 seconds
             time.sleep(5)  # Wait for the page to load
             
             # Get the page content (HTML)
@@ -21,65 +24,158 @@ def get_product_html(asin):
             return page_content
         
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred while fetching the page: {e}")
             return None
         
         finally:
             browser.close()
 
 def extract_product_info(html_content, asin):
-    
-    # Parse the HTML with BeautifulSoup
+    if not html_content:
+        print(f"No HTML content to parse for ASIN: {asin}")
+        return None
+
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Extract the product title
-    product_title = soup.find('span', id='productTitle').get_text(strip=True)
+    try:
+        product_title = soup.find('span', id='productTitle').get_text(strip=True)
+    except AttributeError:
+        product_title = "N/A"
+        print(f"Could not find product title for ASIN: {asin}")
 
-    # Extract the main category and list of categories
     categories = [a.get_text(strip=True) for a in soup.find_all('a', class_='a-link-normal a-color-tertiary')]
-    main_category = categories[0] if categories else None
-    all_categories = ', '.join(categories)
+    main_category = categories[0] if categories else "N/A"
+    all_categories = ', '.join(categories) if categories else "N/A"
 
-    # Extract the features list items
     features = [li.get_text(strip=True) for li in soup.select('ul.a-unordered-list.a-vertical.a-spacing-mini li')]
+    features_str = '; '.join(features) if features else "N/A"
 
-    # Extract the image source link
-    image_link = soup.find('div', id='imgTagWrapperId').find('img')['src']
-    
-    # Extract the store name, remove "Visit the" if present
-    store = soup.find('a', id='bylineInfo').get_text(strip=True)
-    if store.startswith("Visit the"):
-        store = store.replace("Visit the", "").strip()
+    try:
+        image_link = soup.find('div', id='imgTagWrapperId').find('img')['src']
+    except AttributeError:
+        image_link = "N/A"
+        print(f"Could not find image link for ASIN: {asin}")
 
-    # Extract product details as key-value pairs
+    try:
+        store = soup.find('a', id='bylineInfo').get_text(strip=True)
+        if store.startswith("Visit the"):
+            store = store.replace("Visit the", "").strip()
+    except AttributeError:
+        store = "N/A"
+        print(f"Could not find store name for ASIN: {asin}")
+
     details = {}
     for row in soup.select('#productDetails_detailBullets_sections1 tr'):
-        th = row.find('th').get_text(strip=True)
-        td = row.find('td').get_text(strip=True)
-        details[th] = td
+        try:
+            th = row.find('th').get_text(strip=True)
+            td = row.find('td').get_text(strip=True)
+            details[th] = td
+        except AttributeError:
+            continue
 
-    # Serialize the details dictionary as a string without escaping quotes
     details_str = json.dumps(details, ensure_ascii=False).replace('"', '')
 
-    # Prepare CSV data
-    csv_data = {
+    return {
         'parent_asin': asin,
         'main_category': main_category,
         'title': product_title,
-        'features': '; '.join(features),
+        'features': features_str,
         'image': image_link,
         'categories': all_categories,
-        'store':store,
-        'details': details_str  # Details without extra quotes
+        'store': store,
+        'details': details_str
     }
+def asin_exists_in_db(cursor, asin):
+    query = "SELECT COUNT(*) FROM products WHERE parent_asin = %s"
+    cursor.execute(query, (asin,))
+    count = cursor.fetchone()[0]
+    return count > 0
 
-    # Write to CSV
-    with open('product_data.csv', mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=csv_data.keys())
-        writer.writeheader()
-        writer.writerow(csv_data)
+def asin_exists_in_csv(asin, filename='product_data.csv'):
+    if not os.path.exists(filename):
+        return False
+    with open(filename, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        return any(row['parent_asin'] == asin for row in reader)
+    
 
-    print("Data written to product_data.csv")
+def insert_into_mysql(data):
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            database='test_backup',
+            user='root',
+            password='2001'
+        )
 
-# Example usage
-extract_product_info(get_product_html('B079FPFV3X'), 'B079FPFV3X')
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            if asin_exists_in_db(cursor, data['parent_asin']):
+                print(f"ASIN {data['parent_asin']} already exists in the database. Skipping insertion.")
+                return True
+
+            query = """INSERT INTO products 
+                       (parent_asin, main_category, title, features, image, categories, store, details) 
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            
+            values = (
+                data['parent_asin'],
+                data['main_category'],
+                data['title'],
+                data['features'],
+                data['image'],
+                data['categories'],
+                data['store'],
+                data['details']
+            )
+
+            cursor.execute(query, values)
+            connection.commit()
+            print(f"Data inserted successfully for ASIN: {data['parent_asin']}")
+            return True
+
+    except Error as e:
+        print(f"Error while connecting to MySQL or inserting data: {e}")
+        return False
+
+    finally:
+        if connection is not None and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+def write_to_csv(data, filename='product_data.csv'):
+    file_exists = os.path.exists(filename)
+    
+    if file_exists and asin_exists_in_csv(data['parent_asin'], filename):
+        print(f"ASIN {data['parent_asin']} already exists in the CSV. Skipping writing.")
+        return
+
+    mode = 'a' if file_exists else 'w'
+    with open(filename, mode=mode, newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=data.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(data)
+    print(f"Data written to {filename} for ASIN: {data['parent_asin']}")
+
+
+def product_info(asin):
+    html_content = get_product_html(asin)
+    if html_content:
+        product_data = extract_product_info(html_content, asin)
+        if product_data:
+            isTrue = insert_into_mysql(product_data)
+            write_to_csv(product_data)
+            return isTrue
+        else:
+            print(f"Failed to extract product info for ASIN: {asin}")
+            return False
+    else:
+        print(f"Failed to get HTML content for ASIN: {asin}")
+        return False
+
+
+print(product_info('B079FPFV3X'))
