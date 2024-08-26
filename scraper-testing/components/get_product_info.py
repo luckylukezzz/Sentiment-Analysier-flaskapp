@@ -45,6 +45,11 @@ def extract_product_info(html_content, asin):
 
     # Extract the image source link
     image_link = soup.find('div', id='imgTagWrapperId').find('img')['src']
+    
+    # Extract the store name, remove "Visit the" if present
+    store = soup.find('a', id='bylineInfo').get_text(strip=True)
+    if store.startswith("Visit the"):
+        store = store.replace("Visit the", "").strip()
 
     # Extract product details as key-value pairs
     details = {}
@@ -64,6 +69,7 @@ def extract_product_info(html_content, asin):
         'features': '; '.join(features),
         'image': image_link,
         'categories': all_categories,
+        'store':store,
         'details': details_str  # Details without extra quotes
     }
 
