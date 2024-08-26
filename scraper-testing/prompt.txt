@@ -16,5 +16,7 @@ inside div id="imgTagWrapperId" contain img tag src contains the link for the im
 inside the table id="productDetails_detailBullets_sections1"
 contains table rows. each row has th and td those are key value pairs in details 
 details would look like this {'Product Dimensions': '6.2 x 3.07 x 0.29 inches', 'Item Weight': '0.03 Pounds', 'Item model number': '7 PLUS', 'Batteries': '1 Product Specific batteries required. (included)', 'Best Sellers Rank': {'Amazon Renewed': 44055, 'Climate Pledge Friendly: Electronics': 11822}, 'Is Discontinued By Manufacturer': 'No', 'Other display features': 'Wireless', 'Human Interface Input': 'Buttons', 'Form Factor': 'Smartphone', 'Color': 'Gold', 'Whats in the box': 'Adapter, USB Cable', 'Manufacturer': 'Apple Computer', 'Date First Available': 'June 12, 2017', 'Memory Storage Capacity': '128 GB', 'Standing screen display size': '5.5 Inches', 'Weight': '0.03 Pounds', 'Brand': 'Apple', 'Model Name': 'IPhone 7 Plus', 'Wireless Carrier': 'AT&T', 'Screen Size': '5.5 Inches', 'Wireless network technology': 'GSM, Wi-Fi, CDMA, LTE', 'Biometric Security Feature': 'Fingerprint Recognition'}
+ need to add them to a csv
+ 
 
 
