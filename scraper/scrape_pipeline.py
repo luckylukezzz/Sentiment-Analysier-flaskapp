@@ -1,5 +1,5 @@
 from reviews_scrape_final import scrape_reviews
-from components.playwrightt import get_asin_list
+from get_asin_lists import get_asin_list
 from get_product_info import product_info
 
 search_term="ps5"
