@@ -12,7 +12,7 @@ import re
 import time
 
 # Set up logging
-logging.basicConfig(filename='scraper.log', level=logging.INFO,
+logging.basicConfig(filename='review_scrape.log', level=logging.INFO,
                     format='%(asctime)s:%(levelname)s:%(message)s')
 
 load_dotenv()
@@ -170,8 +170,12 @@ def reviews_into_sql(asin, max_pages=15, delay=5):
         conn.close()
         logging.info("Database connection closed")
 
-if __name__ == "__main__":
+def scrape_reviews(asin):
     try:
-        reviews_into_sql('B09772FZTX', max_pages=15, delay=5)
+        reviews_into_sql(asin, max_pages=15, delay=5)
+        return True
     except Exception as e:
-        logging.error(f"Main function error: {e}")
+        logging.error(f"scrape reviews function error: {e}")
+        return False 
+    
+scrape_reviews("B079FPFV3X")

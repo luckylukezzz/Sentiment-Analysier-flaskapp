@@ -6,6 +6,11 @@ import os
 from bs4 import BeautifulSoup
 import mysql.connector
 from mysql.connector import Error
+import logging
+
+# Set up logging
+logging.basicConfig(filename='product_info.log', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_product_html(asin):
     url = f"https://www.amazon.com/dp/{asin}/"
@@ -24,7 +29,7 @@ def get_product_html(asin):
             return page_content
         
         except Exception as e:
-            print(f"An error occurred while fetching the page: {e}")
+            logging.error(f"An error occurred while fetching the page: {e}")
             return None
         
         finally:
@@ -32,7 +37,7 @@ def get_product_html(asin):
 
 def extract_product_info(html_content, asin):
     if not html_content:
-        print(f"No HTML content to parse for ASIN: {asin}")
+        logging.warning(f"No HTML content to parse for ASIN: {asin}")
         return None
 
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -41,7 +46,7 @@ def extract_product_info(html_content, asin):
         product_title = soup.find('span', id='productTitle').get_text(strip=True)
     except AttributeError:
         product_title = "N/A"
-        print(f"Could not find product title for ASIN: {asin}")
+        logging.warning(f"Could not find product title for ASIN: {asin}")
 
     categories = [a.get_text(strip=True) for a in soup.find_all('a', class_='a-link-normal a-color-tertiary')]
     main_category = categories[0] if categories else "N/A"
@@ -54,7 +59,7 @@ def extract_product_info(html_content, asin):
         image_link = soup.find('div', id='imgTagWrapperId').find('img')['src']
     except AttributeError:
         image_link = "N/A"
-        print(f"Could not find image link for ASIN: {asin}")
+        logging.warning(f"Could not find image link for ASIN: {asin}")
 
     try:
         store = soup.find('a', id='bylineInfo').get_text(strip=True)
@@ -62,7 +67,7 @@ def extract_product_info(html_content, asin):
             store = store.replace("Visit the", "").strip()
     except AttributeError:
         store = "N/A"
-        print(f"Could not find store name for ASIN: {asin}")
+        logging.warning(f"Could not find store name for ASIN: {asin}")
 
     details = {}
     for row in soup.select('#productDetails_detailBullets_sections1 tr'):
@@ -85,6 +90,7 @@ def extract_product_info(html_content, asin):
         'store': store,
         'details': details_str
     }
+
 def asin_exists_in_db(cursor, asin):
     query = "SELECT COUNT(*) FROM products WHERE parent_asin = %s"
     cursor.execute(query, (asin,))
@@ -97,7 +103,6 @@ def asin_exists_in_csv(asin, filename='product_data.csv'):
     with open(filename, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         return any(row['parent_asin'] == asin for row in reader)
-    
 
 def insert_into_mysql(data):
     connection = None
@@ -113,7 +118,7 @@ def insert_into_mysql(data):
             cursor = connection.cursor()
 
             if asin_exists_in_db(cursor, data['parent_asin']):
-                print(f"ASIN {data['parent_asin']} already exists in the database. Skipping insertion.")
+                logging.info(f"ASIN {data['parent_asin']} already exists in the database. Skipping insertion.")
                 return True
 
             query = """INSERT INTO products 
@@ -133,11 +138,11 @@ def insert_into_mysql(data):
 
             cursor.execute(query, values)
             connection.commit()
-            print(f"Data inserted successfully for ASIN: {data['parent_asin']}")
+            logging.info(f"Data inserted successfully for ASIN: {data['parent_asin']}")
             return True
 
     except Error as e:
-        print(f"Error while connecting to MySQL or inserting data: {e}")
+        logging.error(f"Error while connecting to MySQL or inserting data: {e}")
         return False
 
     finally:
@@ -145,12 +150,11 @@ def insert_into_mysql(data):
             cursor.close()
             connection.close()
 
-
 def write_to_csv(data, filename='product_data.csv'):
     file_exists = os.path.exists(filename)
     
     if file_exists and asin_exists_in_csv(data['parent_asin'], filename):
-        print(f"ASIN {data['parent_asin']} already exists in the CSV. Skipping writing.")
+        logging.info(f"ASIN {data['parent_asin']} already exists in the CSV. Skipping writing.")
         return
 
     mode = 'a' if file_exists else 'w'
@@ -159,8 +163,7 @@ def write_to_csv(data, filename='product_data.csv'):
         if not file_exists:
             writer.writeheader()
         writer.writerow(data)
-    print(f"Data written to {filename} for ASIN: {data['parent_asin']}")
-
+    logging.info(f"Data written to {filename} for ASIN: {data['parent_asin']}")
 
 def product_info(asin):
     html_content = get_product_html(asin)
@@ -171,11 +174,12 @@ def product_info(asin):
             write_to_csv(product_data)
             return isTrue
         else:
-            print(f"Failed to extract product info for ASIN: {asin}")
+            logging.error(f"Failed to extract product info for ASIN: {asin}")
             return False
     else:
-        print(f"Failed to get HTML content for ASIN: {asin}")
+        logging.error(f"Failed to get HTML content for ASIN: {asin}")
         return False
 
-
-print(product_info('B079FPFV3X'))
+# Example usage
+result = product_info('B079FPFV3X')
+logging.info(f"Product info result: {result}")
