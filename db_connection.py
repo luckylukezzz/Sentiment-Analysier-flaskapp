@@ -3,12 +3,16 @@
 import mysql.connector
 import os
 
+
 class DBConnection:
-    def __init__(self, host=os.getenv('HOST'), user=os.getenv('USER'), password=os.getenv('PASSWORD'), database=os.getenv('DATABASE')):
+    def __init__(self, port=os.getenv('PORT'), host=os.getenv('HOST'), user=os.getenv('USER'),
+                 password=os.getenv('PASSWORD'), database=os.getenv('DATABASE')):
         self.conn = mysql.connector.connect(
             host=host,
             user=user,
             password=password,
+            port=port,
+            ssl_disabled=False,
             database=database
         )
         self.cursor = self.conn.cursor()

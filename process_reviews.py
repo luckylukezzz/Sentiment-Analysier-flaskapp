@@ -10,12 +10,15 @@ class ReviewProcessor:
         self.api_token = api_token
 
     def process(self):
+        print("running process")
         # Establish DB connection
         db = DBConnection()
+        print("connected")
 
         try:
             # Fetch reviews and keywords
             review_data = db.fetch_reviews()
+            print("fetch complete")
             keywords_data = db.fetch_keywords(self.parent_asin)
             features_data = db.fetch_features(self.parent_asin)
 
