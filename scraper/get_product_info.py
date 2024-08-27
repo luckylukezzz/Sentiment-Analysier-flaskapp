@@ -7,10 +7,19 @@ from bs4 import BeautifulSoup
 import mysql.connector
 from mysql.connector import Error
 import logging
+from dotenv import load_dotenv
 
 # Set up logging
 logging.basicConfig(filename='product_info.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+load_dotenv()
+
+host = os.getenv('HOST')
+database = os.getenv('DATABASE')
+user = os.getenv('USER')
+password = os.getenv('PASSWORD')
+
 
 def get_product_html(asin):
     url = f"https://www.amazon.com/dp/{asin}/"
@@ -107,11 +116,13 @@ def asin_exists_in_csv(asin, filename='product_data.csv'):
 def insert_into_mysql(data):
     connection = None
     try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            database='test_backup',
-            user='root',
-            password='2001'
+        conn = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
+            charset='utf8mb4',
+            collation='utf8mb4_unicode_ci'
         )
 
         if connection.is_connected():
