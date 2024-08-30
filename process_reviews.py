@@ -16,13 +16,15 @@ class ReviewProcessor:
         try:
             # Fetch reviews and keywords
             review_data = db.fetch_reviews()
-            keywords_data = db.fetch_keywords(self.parent_asin)
-            features_data = db.fetch_features(self.parent_asin)
 
             # Extract review IDs and texts
-            review_ids, texts = zip(*review_data)
+            print(review_data)
+            review_ids, parent_asins, texts = zip(*review_data)
             review_ids = list(review_ids)
+            parent_asins = list(parent_asins)
             texts = list(texts)
+            print("Data fetched successfully.")
+            print(texts)
 
             # Initialize aspect extractor and sentiment analyzer
             aspect_extractor = AspectExtractor()
@@ -30,16 +32,25 @@ class ReviewProcessor:
 
             # Extract aspects and analyze sentiment
             aspects = aspect_extractor.process_aspects(texts)
-            sentiment_aspect = sentiment_analyzer.analyze(texts, aspects)
+            print(aspects)
 
-            # Prepare the negative keywords list
-            negative_keywords = []
-            for item in keywords_data:
-                if item[0] is not None:
-                    lists = eval(f'[{item[0]}]')
-                    for keyword in lists:
-                        if keyword[1] == 'negative':
-                            negative_keywords.append(keyword[0])
+            aspect_sentiments, overall_sentiments = sentiment_analyzer.analyze(texts, aspects)
+            print(aspect_sentiments, overall_sentiments)
+            db.update_keywords(review_ids, aspect_sentiments)
+            db.update_sentiment_scores(review_ids, overall_sentiments)
+
+            # Filter out negative aspects
+            negative_aspects = self.filter_negative_aspects(aspect_sentiments)
+            print(negative_aspects)
+            
+            # Categorize negative aspects by parent_asin and merge with existing aspects
+            merged_aspects = self.categorize_and_merge_aspects(negative_aspects, parent_asins, db)
+            print("Merged Aspects:", merged_aspects)
+
+            # Update negative keywords in the database
+            db.update_negative_keywords(merged_aspects)
+
+            return
 
             # Integrate LLAMA for suggestions
             llama = LLaMAIntegration(self.api_token)
@@ -54,6 +65,41 @@ class ReviewProcessor:
             print(f"An error occurred: {e}")
         finally:
             db.close()
+            print("Connection closed.")
+
+    def filter_negative_aspects(self, aspect_sentiments):
+        negative_aspects = []
+        for i in range (len(aspect_sentiments)):
+            review_aspects = aspect_sentiments[i]
+            neg_aspects = []
+            neg_aspects = [aspect[0] for aspect in review_aspects if aspect[1] == "Negative"]
+            negative_aspects.append(neg_aspects)
+        return negative_aspects
+
+    def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
+        # Fetch existing negative aspects from the products table
+        existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
+
+        # Make a list of negative aspects for each parent_asin
+        new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+
+        # Merge new negative aspects with existing ones
+        for parent_asin, aspects in new_negative_aspects.items():
+            if parent_asin in existing_negatives:
+                merged_aspects = self.merge_aspects(aspects, existing_negatives[parent_asin])
+            else:
+                merged_aspects = aspects  # If no existing aspects, use new aspects directly
+            existing_negatives[parent_asin] = merged_aspects
+
+        print("Merged Negatives:", existing_negatives)
+
+        return existing_negatives
+    
+    def merge_aspects(self, negative_aspects, existing_negatives):
+        # Combine new and existing aspects, removing duplicates
+        merged_aspects = list(set(existing_negatives + negative_aspects))
+        return merged_aspects
+
 
 
 #-------main.py--------------------------
