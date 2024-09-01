@@ -32,6 +32,7 @@ class ReviewProcessor:
 
             # Extract aspects and analyze sentiment
             aspects = aspect_extractor.process_aspects(texts)
+            print("printing aspects")
             print(aspects)
 
             aspect_sentiments, overall_sentiments = sentiment_analyzer.analyze(texts, aspects)

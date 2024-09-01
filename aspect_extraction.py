@@ -70,7 +70,10 @@ from tqdm import tqdm
 
 class AspectExtractor:
     def __init__(self, model_name="ilsilfverskiold/tech-keywords-extractor", max_new_tokens=50):
+        #model_path = "/path/to/your/local/model"
+
         self.extract_aspects = pipeline("text2text-generation", model=model_name, max_new_tokens=max_new_tokens)
+        print("AspectExtractor loaded")
 
     def process_in_batches(self, reviews, batch_size=32):
         aspects = []
@@ -111,8 +114,30 @@ class AspectExtractor:
 
 class SentimentAspectAnalyzer:
     def __init__(self, model_name="yangheng/deberta-v3-base-absa-v1.1"):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+        model_path = r"D:\testingPrograms\New_folder\ABSA_model"
+
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+            print("Tokenizer loaded successfully from disk")
+        except Exception as e:
+            print(f"Error loading tokenizer from disk: {str(e)}")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False,
+                                                           clean_up_tokenization_spaces=True)
+            print("Tokenizer loaded from internet successfully")
+
+        try:
+            model = AutoModelForSequenceClassification.from_pretrained(model_path)
+            print("Model loaded successfully from disk")
+        except Exception as e:
+            print(f"Error loading model from disk: {str(e)}")
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+            print("SentimentAspectAnalyzer loaded from internet successfully")
+
+            # self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False,
+            #                                                clean_up_tokenization_spaces=True)
+            # self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
     def analyze_aspects(self, reviews, aspects):
         sentiment_aspect = []

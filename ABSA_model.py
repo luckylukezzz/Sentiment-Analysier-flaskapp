@@ -49,6 +49,7 @@ class SentimentAspectAnalyzer:
     def __init__(self, model_name="yangheng/deberta-v3-base-absa-v1.1"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        print("Model loadedloololololololololololol")
 
     def analyze_aspects(self, reviews, aspects):
         sentiment_aspect = []
