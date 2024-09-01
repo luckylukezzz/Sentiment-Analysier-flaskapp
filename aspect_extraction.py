@@ -118,7 +118,7 @@ class SentimentAspectAnalyzer:
         model_path = r"D:\testingPrograms\New_folder\ABSA_model"
 
         try:
-            tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
             print("Tokenizer loaded successfully from disk")
         except Exception as e:
             print(f"Error loading tokenizer from disk: {str(e)}")
@@ -127,7 +127,7 @@ class SentimentAspectAnalyzer:
             print("Tokenizer loaded from internet successfully")
 
         try:
-            model = AutoModelForSequenceClassification.from_pretrained(model_path)
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
             print("Model loaded successfully from disk")
         except Exception as e:
             print(f"Error loading model from disk: {str(e)}")
