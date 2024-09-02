@@ -10,6 +10,7 @@ class ReviewProcessor:
         self.api_token = api_token
 
     def process(self):
+        
         # Establish DB connection
         db = DBConnection()
 
@@ -17,30 +18,32 @@ class ReviewProcessor:
         #return
 
         try:
-            # Fetch reviews and keywords
+            # Fetch unprocessed reviews from database
             review_data = db.fetch_reviews()
+            print(review_data)
 
             # Extract review IDs and texts
-            print(review_data)
             review_ids, parent_asins, texts = zip(*review_data)
             review_ids = list(review_ids)
             parent_asins = list(parent_asins)
             texts = list(texts)
             print("Data fetched successfully.")
-            print("printing texts")
-            print(texts)
+            print("Texts: ",texts)
 
             # Initialize aspect extractor and sentiment analyzer
             aspect_extractor = AspectExtractor()
             sentiment_analyzer = SentimentAspectAnalyzer()
 
-            # Extract aspects and analyze sentiment
+            # Extract aspects from reviews
             aspects = aspect_extractor.process_aspects(texts)
-            print("printing aspects")
-            print(aspects)
+            print("Aspects: ",aspects)
 
+            # Analyze sentiment of aspects and overall sentiment
             aspect_sentiments, overall_sentiments = sentiment_analyzer.analyze(texts, aspects)
-            print(aspect_sentiments, overall_sentiments)
+            print("Aspect sentiments: ",aspect_sentiments)
+            print("Overall sentiments: ",overall_sentiments)
+
+            # Update the database with sentiment analysis results
             db.update_keywords(review_ids, aspect_sentiments)
             db.update_sentiment_scores(review_ids, overall_sentiments)
 
@@ -75,10 +78,15 @@ class ReviewProcessor:
             diff = {key: value for key, value in diff.items() if value}
             product_details = {key: value for key, value in product_details.items() if key in diff}
 
+            print(len(diff), len(product_details))
+            print("Filtered Differences:", diff)
+            print("Filtered Product Details:", product_details)
+
             # Generate suggestions using LLAMA
             for parent_asin, aspects in diff.items():
                 suggestions = llama.generate_suggestions(aspects, product_details[parent_asin])
                 formatted_suggestions = llama.format_suggestions(suggestions)
+                print("Formatted Suggestions:", formatted_suggestions)
 
                 # Update the database with the formatted output
                 db.update_improvements(self.parent_asin, formatted_suggestions)

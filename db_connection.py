@@ -1,4 +1,4 @@
-################ Establishing the database connection ################
+################ Establishing the database connection and database updates ################
 
 import mysql.connector
 from dotenv import load_dotenv
@@ -8,6 +8,7 @@ import json
 load_dotenv()
 
 class DBConnection:
+    # Establish the database connection
     def __init__(self, host=os.getenv('HOST'), user=os.getenv('USER'), password=os.getenv('PASSWORD'), database=os.getenv('DATABASE'), port=os.getenv('PORT')):
         self.conn = mysql.connector.connect(
            host=host,
@@ -29,7 +30,7 @@ class DBConnection:
         print("All negative keywords have been set to NULL.")
 
     def fetch_reviews(self):
-        self.cursor.execute("SELECT review_id, parent_asin, text FROM reviews LIMIT 10")
+        self.cursor.execute("SELECT review_id, parent_asin, text FROM reviews WHERE is_predicted IS NULL LIMIT 10")
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
@@ -38,15 +39,6 @@ class DBConnection:
     #   #self.cursor.execute(query, (parent_asin,))
     #   print("Fetching keywords...")
     #   return self.cursor.fetchall()
-
-    """
-        def fetch_product_details(self, parent_asins):
-            for parent_asin in parent_asins:
-                query = "SELECT details FROM products WHERE parent_asin = %s"
-                self.cursor.execute(query, (parent_asin,))
-                print("Fetching features...")
-            return self.cursor.fetchall()
-    """ 
     
     def fetch_product_details(self, parent_asins):
         parent_asins_tuple = tuple(set(parent_asins))  # Remove duplicates
@@ -118,9 +110,8 @@ class DBConnection:
         self.conn.commit()
         print("Negative keywords updated successfully.")
 
-
     def update_improvements(self, parent_asin, formatted_output):
-        query = "UPDATE products SET improvements = %s WHERE parent_asin = %s"
+        query = "UPDATE products SET negative_keywords = CONCAT(IFNULL(negative_keywords, ''), %s) WHERE parent_asin = %s"
         self.cursor.execute(query, (formatted_output, parent_asin))
         print("Updating improvements...")
         self.conn.commit()
