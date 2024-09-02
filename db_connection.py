@@ -7,16 +7,18 @@ import json
 
 load_dotenv()
 
+
 class DBConnection:
-    # Establish the database connection
-    def __init__(self, host=os.getenv('HOST'), user=os.getenv('USER'), password=os.getenv('PASSWORD'), database=os.getenv('DATABASE'), port=os.getenv('PORT')):
+    # Establish the database connection       
+    def __init__(self, port=os.getenv('PORT'), host=os.getenv('HOST'), user=os.getenv('USER'),
+                 password=os.getenv('PASSWORD'), database=os.getenv('DATABASE')):
         self.conn = mysql.connector.connect(
-           host=host,
-        port=port,
-        user=user,
-        password=password,
-        database=database,
-        ssl_disabled=False,
+            host=host,
+            user=user,
+            password=password,
+            port=port,
+            ssl_disabled=False,
+            database=database
         )
         self.cursor = self.conn.cursor()
         print("Connection established successfully.")

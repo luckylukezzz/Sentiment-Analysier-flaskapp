@@ -1,4 +1,5 @@
 /tempCodeRunnerFile.py
 .env
 .idea
-__pycache__
+__pycache__/
+distilbert-base-uncased-finetuned-emotion/

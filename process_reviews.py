@@ -10,9 +10,9 @@ class ReviewProcessor:
         self.api_token = api_token
 
     def process(self):
-        
         # Establish DB connection
         db = DBConnection()
+        print("connected")
 
         #db.clear_negative_keywords()
         #return
