@@ -27,6 +27,7 @@ class ReviewProcessor:
             parent_asins = list(parent_asins)
             texts = list(texts)
             print("Data fetched successfully.")
+            print("printing texts")
             print(texts)
 
             # Initialize aspect extractor and sentiment analyzer
@@ -35,6 +36,7 @@ class ReviewProcessor:
 
             # Extract aspects and analyze sentiment
             aspects = aspect_extractor.process_aspects(texts)
+            print("printing aspects")
             print(aspects)
 
             aspect_sentiments, overall_sentiments = sentiment_analyzer.analyze(texts, aspects)
