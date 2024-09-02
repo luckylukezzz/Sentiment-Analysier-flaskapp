@@ -3,6 +3,7 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -38,12 +39,37 @@ class DBConnection:
     #   print("Fetching keywords...")
     #   return self.cursor.fetchall()
 
-    def fetch_features(self, parent_asin):
-        query = "SELECT features FROM products WHERE parent_asin = %s"
-        self.cursor.execute(query, (parent_asin,))
-        print("Fetching features...")
-        return self.cursor.fetchall()
+    """
+        def fetch_product_details(self, parent_asins):
+            for parent_asin in parent_asins:
+                query = "SELECT details FROM products WHERE parent_asin = %s"
+                self.cursor.execute(query, (parent_asin,))
+                print("Fetching features...")
+            return self.cursor.fetchall()
+    """ 
     
+    def fetch_product_details(self, parent_asins):
+        parent_asins_tuple = tuple(set(parent_asins))  # Remove duplicates
+
+        # Construct and execute the query
+        placeholders = ','.join(['%s'] * len(parent_asins_tuple))
+        query = f"SELECT parent_asin, details FROM products WHERE parent_asin IN ({placeholders})"
+        self.cursor.execute(query, parent_asins_tuple)
+        results = self.cursor.fetchall()
+
+        details_dict = {}
+        for result in results:
+            parent_asin = result[0]
+            details_json = result[1]
+            
+            # Attempt to decode JSON, handle if it's already a string
+            try:
+                details_dict[parent_asin] = json.loads(details_json)
+            except json.JSONDecodeError:
+                details_dict[parent_asin] = details_json  # Assume it's a string if not JSON
+
+        return details_dict
+
     def update_keywords(self, review_ids, sentiment_aspects):
         for i in range(len(review_ids)):
             self.cursor.execute(
@@ -74,6 +100,7 @@ class DBConnection:
         
         # Fetch results and organize them as a list of lists
         results = self.cursor.fetchall()
+        print("Results:", results)
         negative_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
         
         return negative_aspects

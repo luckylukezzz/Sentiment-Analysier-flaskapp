@@ -22,7 +22,7 @@ class LLaMAIntegration:
         Input Format:
 
         Negative Aspects: [list of negative aspects]
-        Product Specifications: [details of the product]
+        Product Specifications: {dictionary of specifications}
 
         Output Format:
 

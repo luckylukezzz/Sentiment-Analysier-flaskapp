@@ -13,6 +13,9 @@ class ReviewProcessor:
         # Establish DB connection
         db = DBConnection()
 
+        #db.clear_negative_keywords()
+        #return
+
         try:
             # Fetch reviews and keywords
             review_data = db.fetch_reviews()
@@ -44,22 +47,40 @@ class ReviewProcessor:
             print(negative_aspects)
             
             # Categorize negative aspects by parent_asin and merge with existing aspects
-            merged_aspects = self.categorize_and_merge_aspects(negative_aspects, parent_asins, db)
+            merged_aspects, old_aspects = self.categorize_and_merge_aspects(negative_aspects, parent_asins, db)
             print("Merged Aspects:", merged_aspects)
 
             # Update negative keywords in the database
             db.update_negative_keywords(merged_aspects)
 
-            return
-
             # Integrate LLAMA for suggestions
             llama = LLaMAIntegration(self.api_token)
-            suggestions = llama.generate_suggestions(negative_keywords, features_data)
-            formatted_suggestions = llama.format_suggestions(suggestions)
 
-            # Update the database with the formatted output
-            db.update_improvements(self.parent_asin, formatted_suggestions)
-            print("Data updated successfully.")
+            # Merge the negative_aspects with the parent_asins
+            parent_asins = list(set(parent_asins))  # Get unique parent_asins
+            new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+
+            # Get the differences between the new and old negative aspects
+            diff = {key: list(set(value) - set(old_aspects[key])) for key, value in new_negative_aspects.items()}
+            print("Differences:", diff)
+            print("New Negative Aspects:", new_negative_aspects)
+            
+            # Fetch product features
+            product_details = db.fetch_product_details(list(set(parent_asins)))  # Fetch for unique parent_asins
+            print("Product Details:", product_details)
+
+            # Filter out non null differences and respective product details
+            diff = {key: value for key, value in diff.items() if value}
+            product_details = {key: value for key, value in product_details.items() if key in diff}
+
+            # Generate suggestions using LLAMA
+            for parent_asin, aspects in diff.items():
+                suggestions = llama.generate_suggestions(aspects, product_details[parent_asin])
+                formatted_suggestions = llama.format_suggestions(suggestions)
+
+                # Update the database with the formatted output
+                db.update_improvements(self.parent_asin, formatted_suggestions)
+                print(parent_asin, "Data updated successfully.")
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -79,6 +100,7 @@ class ReviewProcessor:
     def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
         # Fetch existing negative aspects from the products table
         existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
+        already_existing_aspects = existing_negatives
 
         # Make a list of negative aspects for each parent_asin
         new_negative_aspects = dict(zip(parent_asins, negative_aspects))
@@ -93,7 +115,7 @@ class ReviewProcessor:
 
         print("Merged Negatives:", existing_negatives)
 
-        return existing_negatives
+        return existing_negatives, already_existing_aspects
     
     def merge_aspects(self, negative_aspects, existing_negatives):
         # Combine new and existing aspects, removing duplicates
