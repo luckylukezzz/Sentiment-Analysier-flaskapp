@@ -3,6 +3,7 @@
 import os
 from groq import Groq
 
+
 class LLaMAIntegration:
     def __init__(self, api_token):
         os.environ["GROQ_API_KEY"] = api_token
@@ -48,7 +49,7 @@ class LLaMAIntegration:
     def format_suggestions(input_text):
         lines = input_text.split('\n')
         formatted_output = []
-        
+
         # Flags to identify sections
         in_negative_aspects_section = False
         in_suggestions_section = False
@@ -72,14 +73,13 @@ class LLaMAIntegration:
                     formatted_output.append(line.strip())
                 else:
                     formatted_output.append(line.strip() + "\n")
-            
+
             # End capturing if reaching the next section or end of file
             if in_negative_aspects_section and line.startswith("Improvement Suggestions:"):
                 in_suggestions_section = True
                 in_negative_aspects_section = False
 
         return ''.join(formatted_output)
-
 
         """
         @staticmethod

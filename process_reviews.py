@@ -49,6 +49,7 @@ class ReviewProcessor:
 
             # Filter out negative aspects
             negative_aspects = self.filter_negative_aspects(aspect_sentiments)
+            negative_aspects = [sublist for sublist in negative_aspects if sublist]  #formating list to a more clear version
             print(negative_aspects)
             
             # Categorize negative aspects by parent_asin and merge with existing aspects
