@@ -4,8 +4,7 @@ import mysql.connector
 from dotenv import load_dotenv
 import os
 import json
-import re
-import ast
+from format_lists import extract_alphanumeric_with_hyphens
 
 load_dotenv()
 
@@ -96,6 +95,7 @@ class DBConnection:
         
         # Fetch results and organize them as a list of lists
         results = self.cursor.fetchall()
+        #results = extract_alphanumeric_with_hyphens(results)
         print("Results:", results)
         negative_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
         print("neg aspects", negative_aspects)
@@ -123,22 +123,3 @@ class DBConnection:
     def close(self):
         self.conn.close()
         print("Connection closed.")
-
-    def extract_aspects(data):
-        """
-        Extracts and cleans the aspects from a list of tuples.
-        """
-        aspects = []
-
-        for _, aspect_string in data:
-            if aspect_string:
-                # Remove unnecessary escape characters
-                cleaned_string = re.sub(r'\\+', '', aspect_string)
-                try:
-                    # Safely convert the cleaned string back to a Python list
-                    aspects.append(ast.literal_eval(cleaned_string))
-                except (SyntaxError, ValueError):
-                    # Skip if the cleaned string cannot be parsed
-                    continue
-
-        return aspects

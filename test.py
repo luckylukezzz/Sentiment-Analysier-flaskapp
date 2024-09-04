@@ -1,7 +1,7 @@
 import os
 import process_reviews
  
-parent_asin = 'B07CQNF813'   # Example ASIN; replace with actual value
+parent_asin = 'B0B5FLX9WS'   # Example ASIN; replace with actual value
 
 api_token = os.getenv("GROQ_API_KEY")
 
