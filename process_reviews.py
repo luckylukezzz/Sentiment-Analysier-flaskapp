@@ -5,8 +5,7 @@ from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
 
 class ReviewProcessor:
-    def __init__(self, parent_asin, api_token):
-        self.parent_asin = parent_asin
+    def __init__(self, api_token):
         self.api_token = api_token
 
     def process(self):
@@ -18,15 +17,24 @@ class ReviewProcessor:
         #return
 
         try:
+            # Fetch product titles
+            # product_titles = db.fetch_product_titles()
+            # print(product_titles)
+
+            # Update the database with product names
+            # db.update_product_names(product_titles)
+            # print("Product names updated successfully.")
+
             # Fetch unprocessed reviews from database
             review_data = db.fetch_reviews()
             print(review_data)
 
             # Extract review IDs and texts
-            review_ids, parent_asins, texts = zip(*review_data)
+            review_ids, parent_asins, texts, timestamps = zip(*review_data)
             review_ids = list(review_ids)
             parent_asins = list(parent_asins)
             texts = list(texts)
+            timestamps = list(timestamps)
             print("Data fetched successfully.")
             print("Texts: ",texts)
 
@@ -47,9 +55,16 @@ class ReviewProcessor:
             db.update_keywords(review_ids, aspect_sentiments)
             db.update_sentiment_scores(review_ids, overall_sentiments)
 
+            # Update timestamp column in the reviews table
+            db.update_timestamps(review_ids, timestamps)
+
             # Filter out negative aspects
             negative_aspects = self.filter_negative_aspects(aspect_sentiments)
             print(negative_aspects)
+
+            # Filter out positive aspects
+            positive_aspects = self.filter_positive_aspects(aspect_sentiments)
+            print(positive_aspects)
             
             # Categorize negative aspects by parent_asin and merge with existing aspects
             merged_aspects, old_aspects = self.categorize_and_merge_aspects(negative_aspects, parent_asins, db)
@@ -57,6 +72,7 @@ class ReviewProcessor:
 
             # Update negative keywords in the database
             db.update_negative_keywords(merged_aspects)
+            
 
             # Integrate LLAMA for suggestions
             llama = LLaMAIntegration(self.api_token)
@@ -106,6 +122,15 @@ class ReviewProcessor:
             neg_aspects = [aspect[0] for aspect in review_aspects if aspect[1] == "Negative"]
             negative_aspects.append(neg_aspects)
         return negative_aspects
+    
+    def filter_positive_aspects(self, aspect_sentiments):
+        positive_aspects = []
+        for i in range (len(aspect_sentiments)):
+            review_aspects = aspect_sentiments[i]
+            pos_aspects = []
+            pos_aspects = [aspect[0] for aspect in review_aspects if aspect[1] == "Positive"]
+            positive_aspects.append(pos_aspects)
+        return positive_aspects
 
     def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
         # Fetch existing negative aspects from the products table

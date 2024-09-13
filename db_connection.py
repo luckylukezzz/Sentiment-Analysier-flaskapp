@@ -2,6 +2,7 @@
 
 import mysql.connector
 from dotenv import load_dotenv
+from datetime import datetime
 import os
 import json
 
@@ -31,8 +32,23 @@ class DBConnection:
         self.conn.commit()
         print("All negative keywords have been set to NULL.")
 
+    def fetch_product_titles(self):
+        self.cursor.execute("SELECT parent_asin, title FROM products")
+        print("Fetching product titles...")
+        return self.cursor.fetchall()
+    
+    def update_product_names(self, product_titles):
+        for parent_asin, title in product_titles:
+            # Extract the text up to the first comma
+            name_up_to_comma = title.split(',')[0].strip()
+            self.cursor.execute(
+                "UPDATE products SET product_name = %s WHERE parent_asin = %s",
+                (name_up_to_comma, parent_asin)
+            )
+        self.conn.commit()
+
     def fetch_reviews(self):
-        self.cursor.execute("SELECT review_id, parent_asin, text FROM reviews WHERE is_predicted IS NULL LIMIT 10")
+        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 20")
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
@@ -70,6 +86,7 @@ class DBConnection:
                 "UPDATE reviews SET keywords = %s WHERE review_id = %s",
                 (str(sentiment_aspects[i]), review_ids[i])
             )
+            print(i,"done")
         self.conn.commit()
         print("Keywords updated successfully.")
 
@@ -81,6 +98,28 @@ class DBConnection:
             )
         self.conn.commit()
         print("Sentiment scores updated successfully.")
+
+    def update_timestamps(self, review_ids, timestamps):
+        for i in range (len(review_ids)):
+            # # Convert the Unix timestamp (in milliseconds) to a datetime object
+            # review_datetime = datetime.fromtimestamp(timestamps[i] / 1000.0)
+            # # Format it to "Month, Year"
+            # review_date_str = review_datetime.strftime("%B, %Y")
+            # self.cursor.execute(
+            #     "UPDATE reviews SET review_date = %s WHERE review_id = %s",
+            # (review_date_str, review_ids[i])
+            # )
+            # Convert the Unix timestamp (in milliseconds) to a datetime object
+            review_datetime = datetime.fromtimestamp(timestamps[i] / 1000.0)
+            # Format it to "YYYY-MM-DD"
+            review_date_str = review_datetime.strftime("%Y-%m-%d")
+            self.cursor.execute(
+                 "UPDATE reviews SET review_date = %s WHERE review_id = %s",
+             (review_date_str, review_ids[i])
+             )
+            
+        self.conn.commit()
+        print("Review_dates updated successfully.")
 
     def fetch_negative_aspects(self, unique_parent_asins):    
         # Create the query with the appropriate number of placeholders
