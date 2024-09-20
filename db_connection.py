@@ -48,7 +48,7 @@ class DBConnection:
         self.conn.commit()
 
     def fetch_reviews(self):
-        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 20")
+        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NOT NULL LIMIT 20")
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
@@ -86,7 +86,6 @@ class DBConnection:
                 "UPDATE reviews SET keywords = %s WHERE review_id = %s",
                 (str(sentiment_aspects[i]), review_ids[i])
             )
-            print(i,"done")
         self.conn.commit()
         print("Keywords updated successfully.")
 
@@ -121,35 +120,101 @@ class DBConnection:
         self.conn.commit()
         print("Review_dates updated successfully.")
 
-    def fetch_negative_aspects(self, unique_parent_asins):    
+    # def fetch_negative_aspects(self, unique_parent_asins):    
+    #     # Create the query with the appropriate number of placeholders
+    #     query = "SELECT parent_asin, negative_keywords FROM products WHERE parent_asin IN ({})".format(
+    #         ','.join(['%s'] * len(unique_parent_asins))
+    #     )
+        
+    #     # Execute the query with the unique parent_asins
+    #     self.cursor.execute(query, unique_parent_asins)
+    #     print("Fetching negative aspects...")
+        
+    #     # Fetch results and organize them as a list of lists
+    #     results = self.cursor.fetchall()
+    #     print("Results:", results)
+    #     negative_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
+        
+    #     return negative_aspects
+    
+    def fetch_aspects(self, unique_parent_asins):    
         # Create the query with the appropriate number of placeholders
-        query = "SELECT parent_asin, negative_keywords FROM products WHERE parent_asin IN ({})".format(
+        query = "SELECT parent_asin, negative_keywords, positive_keywords FROM products WHERE parent_asin IN ({})".format(
             ','.join(['%s'] * len(unique_parent_asins))
         )
         
         # Execute the query with the unique parent_asins
         self.cursor.execute(query, unique_parent_asins)
-        print("Fetching negative aspects...")
+        print("Fetching negative and positive aspects...")
         
         # Fetch results and organize them as a list of lists
         results = self.cursor.fetchall()
         print("Results:", results)
-        negative_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
+
+        existing_negatives = []
+        existing_positives = []
+        for result in results:
+            existing_negatives.append(result[1])
+            existing_positives.append(result[2])
+
+        #negative_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
+        print("Positive aspects:", existing_positives)
+        print("Negative aspects:", existing_negatives)
         
-        return negative_aspects
+        return existing_negatives, existing_positives # These are lists of dictionaries
     
-    def update_negative_keywords(self, merged_aspects):
-        for parent_asin, negative_keywords in merged_aspects.items():
+    # def fetch_positive_aspects(self, unique_parent_asins):
+    #     # Create the query with the appropriate number of placeholders
+    #     query = "SELECT parent_asin, positive_keywords FROM products WHERE parent_asin IN ({})".format(
+    #         ','.join(['%s'] * len(unique_parent_asins))
+    #     )
+        
+    #     # Execute the query with the unique parent_asins
+    #     self.cursor.execute(query, unique_parent_asins)
+    #     print("Fetching positive aspects...")
+        
+    #     # Fetch results and organize them as a list of lists
+    #     results = self.cursor.fetchall()
+    #     positive_aspects = {result[0]: result[1].split(',') if result[1] else [] for result in results}
+        
+    #     return positive_aspects
+    
+    def update_aspects(self, merged_negative_aspects, merged_positive_aspects, unique_parent_asins):
+        for i in range (len(unique_parent_asins)):
+            parent_asin = unique_parent_asins[i]
+            negative_keywords = merged_negative_aspects[i]
+            positive_keywords = merged_positive_aspects[i]
             # Convert the list of negative keywords to a string in the format ['battery', 'screen']
-            keywords_string = str(negative_keywords)
-            
+            negative_keywords_string = str(negative_keywords)
+            positive_keywords_string = str(positive_keywords)
             # Execute the update query
             self.cursor.execute(
-                "UPDATE products SET negative_keywords = %s WHERE parent_asin = %s",
-                (keywords_string, parent_asin)
-        )
+                "UPDATE products SET negative_keywords = %s, positive_keywords = %s WHERE parent_asin = %s",
+                (negative_keywords_string, positive_keywords_string, parent_asin)
+            )
+        # for parent_asin, negative_keywords in merged_negative_aspects.items():
+        #     # Convert the list of negative keywords to a string in the format ['battery', 'screen']
+        #     keywords_string = str(negative_keywords)
+            
+        #     # Execute the update query
+        #     self.cursor.execute(
+        #         "UPDATE products SET negative_keywords = %s WHERE parent_asin = %s",
+        #         (str(keywords_string), parent_asin)
+        # )
         self.conn.commit()
-        print("Negative keywords updated successfully.")
+        print("Negative and positive keywords updated successfully.")
+
+        # for parent_asin, positive_keywords in merged_positive_aspects.items():
+        #     # Convert the list of positive keywords to a string in the format ['battery', 'screen']
+        #     keywords_string = str(positive_keywords)
+            
+        #     # Execute the update query
+        #     self.cursor.execute(
+        #         "UPDATE products SET positive_keywords = %s WHERE parent_asin = %s",
+        #         (keywords_string, parent_asin)
+        #     )
+        # self.conn.commit()
+        # print("Positive keywords updated successfully.")
 
     def update_improvements(self, parent_asin, formatted_output):
         query = "UPDATE products SET negative_keywords = CONCAT(IFNULL(negative_keywords, ''), %s) WHERE parent_asin = %s"

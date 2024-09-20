@@ -3,6 +3,7 @@
 from db_connection import DBConnection
 from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
+from collections import Counter
 
 class ReviewProcessor:
     def __init__(self, api_token):
@@ -58,28 +59,26 @@ class ReviewProcessor:
             # Update timestamp column in the reviews table
             db.update_timestamps(review_ids, timestamps)
 
-            # Filter out negative aspects
-            negative_aspects = self.filter_negative_aspects(aspect_sentiments)
-            print(negative_aspects)
-
-            # Filter out positive aspects
-            positive_aspects = self.filter_positive_aspects(aspect_sentiments)
-            print(positive_aspects)
+            # Filter out negative and positive aspects
+            negative_aspects, positive_aspects = self.filter_aspects(aspect_sentiments)
+            print("Negative aspects",negative_aspects)
+            print("Positive aspects", positive_aspects)
             
-            # Categorize negative aspects by parent_asin and merge with existing aspects
-            merged_aspects, old_aspects = self.categorize_and_merge_aspects(negative_aspects, parent_asins, db)
-            print("Merged Aspects:", merged_aspects)
+            # Categorize positive, negative aspects by parent_asin and merge with existing aspects
+            merged_negative_aspects, merged_positive_aspects, old_negative_aspects, old_positive_aspects, unique_parent_asins = self.categorize_and_merge_aspects(negative_aspects, positive_aspects, parent_asins, db)
 
-            # Update negative keywords in the database
-            db.update_negative_keywords(merged_aspects)
-            
+            # Update negative and positive keywords in the database
+            print("back to main...")
+            db.update_aspects(merged_negative_aspects, merged_positive_aspects, unique_parent_asins)
+            print("Negative and positive aspects updated successfully.")
+
+            return
 
             # Integrate LLAMA for suggestions
             llama = LLaMAIntegration(self.api_token)
 
             # Merge the negative_aspects with the parent_asins
-            parent_asins = list(set(parent_asins))  # Get unique parent_asins
-            new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+            new_negative_aspects = dict(zip(unique_parent_asins, negative_aspects))
 
             # Get the differences between the new and old negative aspects
             diff = {key: list(set(value) - set(old_aspects[key])) for key, value in new_negative_aspects.items()}
@@ -114,44 +113,112 @@ class ReviewProcessor:
             db.close()
             print("Connection closed.")
 
-    def filter_negative_aspects(self, aspect_sentiments):
+    def filter_aspects(self, aspect_sentiments):
         negative_aspects = []
-        for i in range (len(aspect_sentiments)):
-            review_aspects = aspect_sentiments[i]
-            neg_aspects = []
-            neg_aspects = [aspect[0] for aspect in review_aspects if aspect[1] == "Negative"]
-            negative_aspects.append(neg_aspects)
-        return negative_aspects
-    
-    def filter_positive_aspects(self, aspect_sentiments):
         positive_aspects = []
         for i in range (len(aspect_sentiments)):
             review_aspects = aspect_sentiments[i]
+            neg_aspects = []
             pos_aspects = []
-            pos_aspects = [aspect[0] for aspect in review_aspects if aspect[1] == "Positive"]
+            for aspect in review_aspects:
+                if aspect[1] == "Negative":
+                    neg_aspects.append(aspect[0])
+                elif aspect[1] == "Positive":    
+                    pos_aspects.append(aspect[0])
+            negative_aspects.append(neg_aspects)
             positive_aspects.append(pos_aspects)
-        return positive_aspects
+        return negative_aspects, positive_aspects
+    
 
-    def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
-        # Fetch existing negative aspects from the products table
-        existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
-        already_existing_aspects = existing_negatives
+    # def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
+    #     # Fetch existing negative aspects from the products table
+    #     existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
+    #     already_existing_aspects = existing_negatives
 
-        # Make a list of negative aspects for each parent_asin
-        new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+    #     # Make a list of negative aspects for each parent_asin
+    #     new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+
+    #     # Merge new negative aspects with existing ones
+    #     for parent_asin, aspects in new_negative_aspects.items():
+    #         if parent_asin in existing_negatives:
+    #             merged_aspects = self.merge_aspects(aspects, existing_negatives[parent_asin])
+    #         else:
+    #             merged_aspects = aspects  # If no existing aspects, use new aspects directly
+    #         existing_negatives[parent_asin] = merged_aspects
+
+    #     print("Merged Negatives:", existing_negatives)
+
+    #     return existing_negatives, already_existing_aspects
+   
+
+    def categorize_and_merge_aspects(self, negative_aspects, positive_aspects, parent_asins, db):
+        unique_parent_asins = list(set(parent_asins))  # Get unique parent_asins
+        # Fetch existing negative aspects (keyword: frequency) from the products table
+        existing_negatives, existing_positives = db.fetch_aspects(unique_parent_asins)  # Fetch for unique parent_asins
+
+        old_negative_aspects = existing_negatives.copy()  # Keep a copy of already existing aspects
+        old_positive_aspects = existing_positives.copy()
+
+        # Make a dictionary of negative aspects for each parent_asin (new aspects in keyword: frequency format)
+        new_negative_aspects = dict(zip(unique_parent_asins, negative_aspects))
+        new_positive_aspects = dict(zip(unique_parent_asins, positive_aspects))
+
+        print("New Negatives:", new_negative_aspects)
+        print("New Positives:", new_positive_aspects)
+        print("Passed here :)")
 
         # Merge new negative aspects with existing ones
         for parent_asin, aspects in new_negative_aspects.items():
-            if parent_asin in existing_negatives:
-                merged_aspects = self.merge_aspects(aspects, existing_negatives[parent_asin])
+            parent_asin_index = unique_parent_asins.index(parent_asin)  # Get the index of parent_asin in parent_asins
+            print(parent_asin_index)
+
+            if aspects is not None:
+                print("hi")
+                merged_aspects = existing_negatives[parent_asin_index]
+                if merged_aspects is None:
+                    merged_aspects = {}  # Initialize as an empty dictionary if None
+
+                for aspect in aspects:
+                    if aspect in merged_aspects:
+                        merged_aspects[aspect] += 1  # Increase frequency if keyword exists
+                    else:
+                        merged_aspects[aspect] = 1  # Add new keyword with frequency 1
+
+                print("Merged Aspects:", merged_aspects)
+                existing_negatives[parent_asin_index] = merged_aspects  # Update the existing_negatives
+            
             else:
-                merged_aspects = aspects  # If no existing aspects, use new aspects directly
-            existing_negatives[parent_asin] = merged_aspects
+                existing_negatives[parent_asin_index] = existing_negatives[parent_asin_index]  # If no new aspects, keep the existing ones
 
         print("Merged Negatives:", existing_negatives)
 
-        return existing_negatives, already_existing_aspects
-    
+                # Merge new negative aspects with existing ones
+        for parent_asin, aspects in new_positive_aspects.items():
+            parent_asin_index = unique_parent_asins.index(parent_asin)  # Get the index of parent_asin in parent_asins
+            print(parent_asin_index)
+
+            if aspects is not None:
+                print("hi")
+                merged_aspects = existing_positives[parent_asin_index]
+                if merged_aspects is None:
+                    merged_aspects = {}  # Initialize as an empty dictionary if None
+
+                for aspect in aspects:
+                    if aspect in merged_aspects:
+                        merged_aspects[aspect] += 1  # Increase frequency if keyword exists
+                    else:
+                        merged_aspects[aspect] = 1  # Add new keyword with frequency 1
+
+                print("Merged Aspects:", merged_aspects)
+                existing_positives[parent_asin_index] = merged_aspects  # Update the existing_negatives
+            
+            else:
+                existing_positives[parent_asin_index] = existing_positives[parent_asin_index]  # If no new aspects, keep the existing ones
+
+        print("Merged Positives:", existing_positives)
+        return existing_negatives, existing_positives, old_negative_aspects, old_positive_aspects, unique_parent_asins  # Return the updated dictionary
+
+
     def merge_aspects(self, negative_aspects, existing_negatives):
         # Combine new and existing aspects, removing duplicates
         merged_aspects = list(set(existing_negatives + negative_aspects))
