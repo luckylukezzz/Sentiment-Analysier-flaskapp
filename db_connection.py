@@ -52,11 +52,11 @@ class DBConnection:
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
-    #def fetch_keywords(self, review_ids):
-    #   query = "SELECT keywords FROM reviews WHERE parent_asin = %s"
-    #   #self.cursor.execute(query, (parent_asin,))
-    #   print("Fetching keywords...")
-    #   return self.cursor.fetchall()
+    def fetch_keywords(self, parent_asin):
+       query = "SELECT keywords FROM reviews WHERE parent_asin = %s"
+       self.cursor.execute(query, (parent_asin,))
+       print("Fetching keywords...")
+       return self.cursor.fetchall()
     
     def fetch_product_details(self, parent_asins):
         parent_asins_tuple = tuple(set(parent_asins))  # Remove duplicates
