@@ -20,9 +20,10 @@ def calculateOverallSentiments(parent_asin):
 
     #Output the result
     print(positive_fractions)
+    #print(type(positive_fractions))
 
 def calculate_positive_fraction(df, keywords_to_check):
-    keyword_counts = {keyword: {'positive': 0, 'negative': 0} for keyword in keywords_to_check}
+    keyword_counts = {keyword: {'positive': 0, 'negative': 0, 'neutral': 0} for keyword in keywords_to_check}
 
     # Iterate over each row in the DataFrame
     for index, row in df.iterrows():
@@ -36,11 +37,13 @@ def calculate_positive_fraction(df, keywords_to_check):
                     keyword_counts[keyword]['positive'] += 1
                 elif sentiment == 'Negative':
                     keyword_counts[keyword]['negative'] += 1
+                elif sentiment == 'Neutral':
+                    keyword_counts[keyword]['neutral'] += 1
 
     # Calculate fractions for each keyword
     fractions = {}
     for keyword, counts in keyword_counts.items():
-        total = counts['positive'] + counts['negative']
+        total = counts['positive'] + counts['negative'] + counts['neutral']
         if total > 0:
             fractions[keyword] = counts['positive'] / total
         else:
@@ -48,4 +51,5 @@ def calculate_positive_fraction(df, keywords_to_check):
 
     return fractions
 
-#calculateOverallSentiments('B00NQHZ2RU')
+
+calculateOverallSentiments('B00NQHZ2RU')
