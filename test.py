@@ -10,4 +10,3 @@ ASIN = input()
 
 processor = process_reviews.ReviewProcessor(api_token)
 processor.process(ASIN)
-
