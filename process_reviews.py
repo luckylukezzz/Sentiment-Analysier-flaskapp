@@ -4,16 +4,19 @@ from db_connection import DBConnection
 from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
 from collections import Counter
+from scraper import reviews_scrape_final
 import json
 
 class ReviewProcessor:
     def __init__(self, api_token):
         self.api_token = api_token
 
-    def process(self):
+    def process(self, ASIN):
         # Establish DB connection
         db = DBConnection()
         print("connected")
+
+        reviews_scrape_final.scrape_reviews(ASIN)
 
         #db.clear_negative_keywords()
         #return

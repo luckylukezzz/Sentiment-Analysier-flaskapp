@@ -178,4 +178,4 @@ def scrape_reviews(asin):
         logging.error(f"scrape reviews function error: {e}")
         return False 
     
-scrape_reviews("B079FPFV3X")
+#scrape_reviews("B079FPFV3X")
