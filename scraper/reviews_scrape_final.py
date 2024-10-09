@@ -12,14 +12,14 @@ import re
 import time
 
 # Set up logging
-logging.basicConfig(filename='review_scrape.log', level=logging.INFO,
+logging.basicConfig(filename='review_scrape.log', level=logging.DEBUG,
                     format='%(asctime)s:%(levelname)s:%(message)s')
-
 load_dotenv()
 
 host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
+port = os.getenv('PORT')
 password = os.getenv('PASSWORD')
 
 def clean_text(text):
@@ -39,6 +39,7 @@ def get_db_connection():
         conn = mysql.connector.connect(
             host=host,
             user=user,
+            port=port,
             password=password,
             database=database,
             charset='utf8mb4',
@@ -178,4 +179,4 @@ def scrape_reviews(asin):
         logging.error(f"scrape reviews function error: {e}")
         return False 
     
-#scrape_reviews("B079FPFV3X")
+print(scrape_reviews("B0CMDL3H3V"))

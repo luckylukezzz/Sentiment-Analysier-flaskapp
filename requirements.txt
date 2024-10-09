@@ -3,6 +3,7 @@ mysql-connector-python==8.1.0
 flask-cors==4.0.1
 requests==2.31.0
 beautifulsoup
+beautifulsoup4
 playwright~=1.46.0
 ttensorflow==2.12.0
 transformers~=4.44.0

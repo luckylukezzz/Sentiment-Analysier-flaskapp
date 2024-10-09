@@ -3,3 +3,5 @@
 .idea
 __pycache__/
 distilbert-base-uncased-finetuned-emotion/
+scraper/reviews.csv
+scraper/review_scrape.log
