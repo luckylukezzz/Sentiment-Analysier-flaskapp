@@ -54,10 +54,16 @@ This repository implements Aspect-Based Sentiment Analysis (ABSA) on user review
 To get started with the Frontend, follow these steps :
 
 1. Clone this repository.
-> https://github.com/luckylukezzz/Sentiment-Analyser-flaskapp
+
+```
+https://github.com/luckylukezzz/Sentiment-Analyser-flaskapp
+```
 
 2. cd in to the project directory and Install the dependencies using following command.(Activate the Virtual Environment if you are using one. It's recommended to use one.)
-> pip install -r requirements.txt
+
+```
+pip install -r requirements.txt
+```
 
 3. create `.env` file inside the directory including following environmental variables.
 (You are supposed to update variable values according to your sql environment, see [***Sample database***](https://github.com/luckylukezzz/Sentiment-Analysier-flaskapp/blob/main/temp_db_cons/db_aaacae_dse_8_12_2024.sql) for database structure. 
@@ -71,7 +77,10 @@ DATABASE= <database>
 ```
 
 4. Start the Frontend using following command.
-> python test.py
+
+```
+python test.py
+```
 
 ---
 
