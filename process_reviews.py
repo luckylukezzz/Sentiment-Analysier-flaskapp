@@ -4,6 +4,7 @@ from db_connection import DBConnection
 from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
 from emotion_db_fill import EmotionExtractor
+from aspect_score_generator import AspectScoreGenerator
 from collections import Counter
 import json
 
@@ -45,6 +46,7 @@ class ReviewProcessor:
             aspect_extractor = AspectExtractor()
             sentiment_analyzer = SentimentAspectAnalyzer()
             emotion_analyzer = EmotionExtractor()
+            aspect_score_generator = AspectScoreGenerator()
 
             # Extract aspects from reviews
             aspects = aspect_extractor.process_aspects(texts)
@@ -67,6 +69,12 @@ class ReviewProcessor:
             print("Emotion:", emotion)
             print("Score:", score)
             db.update_emotions(review_ids, emotion, score)
+
+            # Update the aspect scores in the database
+            aspects = ['quality', 'price', 'shipping', 'Customer Service', 'Warranty']
+            aspect_results = aspect_score_generator.extract_aspect_scores(texts, aspects)
+            print("Aspect Results:", aspect_results)
+            db.update_aspect_scores(review_ids, aspect_results)
     
             db.update_review_count(review_ids)
 
