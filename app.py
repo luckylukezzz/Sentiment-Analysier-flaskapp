@@ -9,6 +9,7 @@ from scraper.scrape_with_asin import scrape_reviews_final
 from celery import Celery
 
 load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
 
@@ -29,35 +30,35 @@ db = mysql.connector.connect(
     ssl_disabled=False,
     connection_timeout=1000,
 )
-
 cursor = db.cursor(dictionary=True)
+
 api_token = os.getenv("GROQ_API_KEY")
 
 # Celery configuration
-app.config.update(
-    {
-        'broker_url': 'redis://localhost:6379/0',
-        'result_backend': 'redis://localhost:6379/0',
-    }
+celery = Celery(
+    app.name,
+    broker='redis://localhost:6379/0',
+    backend='redis://localhost:6379/0'
 )
-
-celery = Celery(app.name, broker=app.config['broker_url'])
 celery.conf.update(app.config)
+
 
 @celery.task
 def async_scrape_reviews(asin):
     scrape_reviews_final(asin)
     return f"Scraping completed for ASIN: {asin}"
 
+
 @app.route('/scrape', methods=['POST'])
 def start_scrape():
     data = request.json
     if not data or 'asin' not in data:
         return jsonify({"error": "ASIN is required"}), 400
-    
+
     asin = data['asin']
     task = async_scrape_reviews.delay(asin)
     return jsonify({"message": "Scraping task started", "task_id": str(task.id)}), 202
+
 
 @app.route('/task/<task_id>', methods=['GET'])
 def get_task_status(task_id):
@@ -78,6 +79,7 @@ def get_task_status(task_id):
             'status': str(task.info)
         }
     return jsonify(response)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
