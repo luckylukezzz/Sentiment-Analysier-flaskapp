@@ -108,6 +108,22 @@ class DBConnection:
         self.conn.commit()
         print("Emotions updated successfully.")
 
+    def update_aspect_scores(self, review_ids, aspect_results):
+        for i in range(len(review_ids)):
+            self.cursor.execute(
+                "UPDATE reviews SET aspect_quality = %s, quality_score = %s, aspect_price = %s, price_score = %s, aspect_shipping = %s, shipping_score = %s, aspect_customer_service = %s, customer_service_score = %s, aspect_warranty = %s, warranty_score = %s WHERE review_id = %s",
+                (
+                    aspect_results[i]['aspect_quality'], aspect_results[i]['quality_score'],
+                    aspect_results[i]['aspect_price'], aspect_results[i]['price_score'],
+                    aspect_results[i]['aspect_shipping'], aspect_results[i]['shipping_score'],
+                    aspect_results[i]['aspect_customer_service'], aspect_results[i]['customer_service_score'],
+                    aspect_results[i]['aspect_warranty'], aspect_results[i]['warranty_score'],
+                    review_ids[i]
+                )
+            )
+        self.conn.commit()
+        print("Aspect scores updated successfully.")
+
     def update_timestamps(self, review_ids, timestamps):
         for i in range (len(review_ids)):
             # # Convert the Unix timestamp (in milliseconds) to a datetime object
