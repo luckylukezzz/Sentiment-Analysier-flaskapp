@@ -5,7 +5,7 @@ import mysql.connector
 import csv
 from datetime import datetime
 import os
-from components.scrape_ops_headers import get_headers
+from scraper.components.scrape_ops_headers import get_headers
 from dotenv import load_dotenv
 import logging
 import re

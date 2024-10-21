@@ -1,6 +1,6 @@
 import logging
-from reviews_scrape_final import scrape_reviews
-from get_product_info import product_info
+from scraper.reviews_scrape_final import scrape_reviews
+from scraper.get_product_info import product_info
 
 logging.basicConfig(
     level=logging.DEBUG,
