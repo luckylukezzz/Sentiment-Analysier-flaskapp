@@ -121,6 +121,7 @@ def insert_into_mysql(data):
             user=user,
             password=password,
             database=database,
+            ssl_disabled=False,
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci'
         )
