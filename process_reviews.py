@@ -3,6 +3,7 @@
 from db_connection import DBConnection
 from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
+from emotion_db_fill import EmotionExtractor
 from collections import Counter
 import json
 
@@ -43,6 +44,7 @@ class ReviewProcessor:
             # Initialize aspect extractor and sentiment analyzer
             aspect_extractor = AspectExtractor()
             sentiment_analyzer = SentimentAspectAnalyzer()
+            emotion_analyzer = EmotionExtractor()
 
             # Extract aspects from reviews
             aspects = aspect_extractor.process_aspects(texts)
@@ -59,6 +61,13 @@ class ReviewProcessor:
 
             # Update timestamp column in the reviews table
             db.update_timestamps(review_ids, timestamps)
+
+            # Update emotions in the database
+            emotion, score = emotion_analyzer.extract_emotions(texts)
+            print("Emotion:", emotion)
+            print("Score:", score)
+            db.update_emotions(review_ids, emotion, score)
+    
             db.update_review_count(review_ids)
 
             # Filter out negative and positive aspects
