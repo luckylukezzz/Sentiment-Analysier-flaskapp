@@ -117,7 +117,7 @@ def asin_exists_in_csv(asin, filename='product_data.csv'):
 def insert_into_mysql(data):
     connection = None
     try:
-        conn = mysql.connector.connect(
+        connection = mysql.connector.connect(
             host=host,
             user=user,
             port=port,
@@ -195,5 +195,5 @@ def product_info(asin):
         return False
 
 # Example usage
-result = product_info('B079FPFV3X')
-logging.info(f"Product info result: {result}")
+#result = product_info('B079FPFV3X')
+#logging.info(f"Product info result: {result}")

@@ -8,10 +8,10 @@ api_token = os.getenv("GROQ_API_KEY")
 def ABSA_pipeline(asin, api_token):
     scrape_reviews_final(asin)
 
-    #processor = process_reviews.ReviewProcessor(api_token)
-    #processor.process()
+    processor = process_reviews.ReviewProcessor(api_token)
+    processor.process()
 
 
-asin = 'B09DFHJTF5'
+asin = 'B0CGTD5KVT'
 
 ABSA_pipeline(asin, api_token)

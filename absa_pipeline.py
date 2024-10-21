@@ -12,6 +12,6 @@ def ABSA_pipeline(asin, api_token):
     processor.process()
 
 
-asin = 'B09DFHJTF5'
+asin = 'B0CGTD5KVT'
 
 ABSA_pipeline(asin, api_token)
