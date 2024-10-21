@@ -42,6 +42,7 @@ def get_db_connection():
             user=user,
             password=password,
             database=database,
+            port=port,
             ssl_disabled=False,
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci'
