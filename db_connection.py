@@ -98,6 +98,16 @@ class DBConnection:
         self.conn.commit()
         print("Sentiment scores updated successfully.")
 
+    def update_emotions(self, review_ids, emotions, scores):
+        for i in range(len(review_ids)):
+            # Ensure that score is a float, and emotion is a string
+            self.cursor.execute(
+                "UPDATE reviews SET emotion = %s, emo_score = %s WHERE review_id = %s",
+                (emotions[i], float(scores[i]), review_ids[i])  # Ensure score is converted to float
+            )
+        self.conn.commit()
+        print("Emotions updated successfully.")
+
     def update_timestamps(self, review_ids, timestamps):
         for i in range (len(review_ids)):
             # # Convert the Unix timestamp (in milliseconds) to a datetime object
