@@ -19,6 +19,7 @@ host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
+port = os.getenv('PORT')
 
 
 def get_product_html(asin):
@@ -119,6 +120,7 @@ def insert_into_mysql(data):
         conn = mysql.connector.connect(
             host=host,
             user=user,
+            port=port,
             password=password,
             database=database,
             ssl_disabled=False,

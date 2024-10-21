@@ -21,6 +21,7 @@ host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
+port = os.getenv('PORT')
 
 def clean_text(text):
     # Remove emojis and other problematic characters
