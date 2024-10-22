@@ -79,9 +79,9 @@ class ReviewProcessor:
             db.update_aspect_scores(review_ids, aspect_results)
 
             # Update the lime explanations in the database
-            lime_results = lime_explainer.explain_review(texts, aspect_results)
-            print("Lime Results:", lime_results)
-            db.update_lime_explanations(review_ids, lime_results)
+            # lime_results = lime_explainer.explain_review(texts, aspect_results)
+            # print("Lime Results:", lime_results)
+            # db.update_lime_explanations(review_ids, lime_results)
     
             db.update_review_count(review_ids)
 
