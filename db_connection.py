@@ -124,6 +124,15 @@ class DBConnection:
         self.conn.commit()
         print("Aspect scores updated successfully.")
 
+    def update_lime_explanations(self, review_ids, lime_explanations):
+        for i in range(len(review_ids)):
+            self.cursor.execute(
+                "UPDATE reviews SET lime = %s WHERE review_id = %s",
+                (json.dumps(lime_explanations[i]), review_ids[i])
+            )
+        self.conn.commit()
+        print("LIME explanations updated successfully.")
+
     def update_timestamps(self, review_ids, timestamps):
         for i in range (len(review_ids)):
             # # Convert the Unix timestamp (in milliseconds) to a datetime object
