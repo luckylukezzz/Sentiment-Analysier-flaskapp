@@ -48,7 +48,7 @@ class DBConnection:
         self.conn.commit()
 
     def fetch_reviews(self):
-        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 20")
+        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 5")
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
