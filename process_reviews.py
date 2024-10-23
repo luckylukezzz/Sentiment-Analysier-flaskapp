@@ -195,9 +195,11 @@ class ReviewProcessor:
 
             if aspects is not None:
                 print("hi")
+                print(len(existing_negatives))
                 merged_aspects = existing_negatives[parent_asin_index]
                 if merged_aspects is None:
                     merged_aspects = dict()  # Initialize as an empty dictionary if None
+                print('hi2')
                 print(aspects)
                 for aspect in aspects:
                     if aspect in merged_aspects:

@@ -15,8 +15,8 @@ def ABSA_pipeline(asin, api_token):
     processor.process()
 
 
-#asin = 'B0CGTD5KVT'
-asin = input("Enter asin: ")
+asin = 'B0CGTD5KVT'
+#asin = input("Enter asin: ")
 logging.info("got asin" + str(asin))
 logging.info("Starting ABSA pipeline")
 ABSA_pipeline(asin, api_token)
