@@ -26,7 +26,7 @@ def get_product_html(asin):
     url = f"https://www.amazon.com/dp/{asin}/"
     
     with sync_playwright() as p:
-        browser = p.firefox.launch(headless=False, slow_mo=100)
+        browser = p.firefox.launch(headless=True, slow_mo=100)
         page = browser.new_page()
         
         try:

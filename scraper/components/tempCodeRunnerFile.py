@@ -1,0 +1,1 @@
+https://headers.scrapeops.io/v1/browser-headers
