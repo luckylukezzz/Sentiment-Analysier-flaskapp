@@ -74,10 +74,10 @@ class ReviewProcessor:
             db.update_timestamps(review_ids, timestamps)
 
             # Update emotions in the database
-            # emotion, score = emotion_analyzer.extract_emotions(texts)
-            # print("Emotion:", emotion)
-            # print("Score:", score)
-            # db.update_emotions(review_ids, emotion, score)
+            emotion, score = emotion_analyzer.extract_emotions(texts)
+            print("Emotion:", emotion)
+            print("Score:", score)
+            db.update_emotions(review_ids, emotion, score)
 
             # Update the aspect scores in the database
             aspects = ['quality', 'price', 'shipping', 'Customer Service', 'Warranty']
