@@ -6,6 +6,9 @@ from llama_integration import LLaMAIntegration
 from emotion_db_fill import EmotionExtractor
 from aspect_score_generator import AspectScoreGenerator
 from lime_explainer import LimeExplainer
+from emotion_db_fill import EmotionExtractor
+from aspect_score_generator import AspectScoreGenerator
+from lime_explainer import LimeExplainer
 from collections import Counter
 from collections import defaultdict
 import json
@@ -47,6 +50,9 @@ class ReviewProcessor:
             # Initialize aspect extractor and sentiment analyzer
             aspect_extractor = AspectExtractor()
             sentiment_analyzer = SentimentAspectAnalyzer()
+            emotion_analyzer = EmotionExtractor()
+            aspect_score_generator = AspectScoreGenerator()
+            lime_explainer = LimeExplainer()
             emotion_analyzer = EmotionExtractor()
             aspect_score_generator = AspectScoreGenerator()
             lime_explainer = LimeExplainer()
