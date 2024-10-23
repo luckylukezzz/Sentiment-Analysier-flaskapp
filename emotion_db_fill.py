@@ -4,9 +4,9 @@ from transformers import pipeline
 
 class EmotionExtractor:
 
-    def __init__(self, model_name="transformersbook/distilbert-base-uncased-finetuned-emotion"):
-
-        model_path = r"./models/distilbert-base-uncased-finetuned-emotion"
+    def __init__(self, model_path="./models/distilbert-base-uncased-finetuned-emotion", max_length=512):
+        # Initialize the pre-trained classifier model for emotion extraction
+        self.max_length = max_length
 
         try:
             self.classifier = pipeline("text-classification", model=model_path)
