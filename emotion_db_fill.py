@@ -3,11 +3,9 @@ import pandas as pd
 from transformers import pipeline
 
 class EmotionExtractor:
-
     def __init__(self, model_path="./models/distilbert-base-uncased-finetuned-emotion", max_length=512):
         # Initialize the pre-trained classifier model for emotion extraction
         self.max_length = max_length
-
         try:
             self.classifier = pipeline("text-classification", model=model_path)
             print("Emotion Model loaded successfully from disk")
@@ -40,18 +38,30 @@ class EmotionExtractor:
         try:
             # Loop through the list of reviews
             for review in reviews:
-                # Predict emotion and get the score for each review
-                preds = self.classifier(review, top_k=None)
-                emotion, score = self.get_highest_scored_emotion(preds)
+                # Split the review into chunks if it's longer than max_length
+                chunks = [review[i:i + self.max_length] for i in range(0, len(review), self.max_length)]
+                chunk_emotions = []
+                chunk_scores = []
 
-                # Append the emotion and score to the respective lists
-                emotions.append(emotion)
-                scores.append(score)
+                for chunk in chunks:
+                    # Predict emotion and get the score for each chunk
+                    preds = self.classifier(chunk, return_all_scores=True)
+                    emotion, score = self.get_highest_scored_emotion(preds)
+                    chunk_emotions.append(emotion)
+                    chunk_scores.append(score)
+
+                # Aggregate results from all chunks (you could average scores, take the majority emotion, etc.)
+                final_emotion = max(set(chunk_emotions), key=chunk_emotions.count)
+                final_score = sum(chunk_scores) / len(chunk_scores) if chunk_scores else 0
+
+                emotions.append(final_emotion)
+                scores.append(final_score)
 
         except Exception as e:
             print(f"Error extracting emotion: {e}")
 
         return emotions, scores
+
 
 
     # try:

@@ -4,7 +4,13 @@ from db_connection import DBConnection
 from aspect_extraction import AspectExtractor, SentimentAspectAnalyzer
 from llama_integration import LLaMAIntegration
 from emotion_db_fill import EmotionExtractor
+from aspect_score_generator import AspectScoreGenerator
+from lime_explainer import LimeExplainer
+from emotion_db_fill import EmotionExtractor
+from aspect_score_generator import AspectScoreGenerator
+from lime_explainer import LimeExplainer
 from collections import Counter
+from collections import defaultdict
 import json
 
 class ReviewProcessor:
@@ -45,6 +51,11 @@ class ReviewProcessor:
             aspect_extractor = AspectExtractor()
             sentiment_analyzer = SentimentAspectAnalyzer()
             emotion_analyzer = EmotionExtractor()
+            aspect_score_generator = AspectScoreGenerator()
+            lime_explainer = LimeExplainer()
+            emotion_analyzer = EmotionExtractor()
+            aspect_score_generator = AspectScoreGenerator()
+            lime_explainer = LimeExplainer()
 
             # Extract aspects from reviews
             aspects = aspect_extractor.process_aspects(texts)
@@ -67,6 +78,17 @@ class ReviewProcessor:
             print("Emotion:", emotion)
             print("Score:", score)
             db.update_emotions(review_ids, emotion, score)
+
+            # Update the aspect scores in the database
+            aspects = ['quality', 'price', 'shipping', 'Customer Service', 'Warranty']
+            aspect_results = aspect_score_generator.extract_aspect_scores(texts, aspects)
+            print("Aspect Results:", aspect_results)
+            db.update_aspect_scores(review_ids, aspect_results)
+
+            # Update the lime explanations in the database
+            # lime_results = lime_explainer.explain_review(texts, aspect_results)
+            # print("Lime Results:", lime_results)
+            # db.update_lime_explanations(review_ids, lime_results)
     
             db.update_review_count(review_ids)
 
@@ -141,8 +163,8 @@ class ReviewProcessor:
     def filter_aspects(self, aspect_sentiments):
         negative_aspects = []
         positive_aspects = []
-        for i in range (len(aspect_sentiments)):
-            review_aspects = aspect_sentiments[i]
+        for i in range (len(aspect_sentiments)):  # No. of reviews
+            review_aspects = aspect_sentiments[i] # Aspect sentiments for a single review
             neg_aspects = []
             pos_aspects = []
             for aspect in review_aspects:
@@ -150,34 +172,37 @@ class ReviewProcessor:
                     neg_aspects.append(aspect[0])
                 elif aspect[1] == "Positive":    
                     pos_aspects.append(aspect[0])
-            negative_aspects.append(neg_aspects)
-            positive_aspects.append(pos_aspects)
+            negative_aspects.append(neg_aspects) # Appending a list of negative aspects for each review
+            positive_aspects.append(pos_aspects) # Appending a list of positive aspects for each review
         return negative_aspects, positive_aspects
     
 
-    def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
+    # def categorize_and_merge_aspects(self, negative_aspects, parent_asins, db):
         # Fetch existing negative aspects from the products table
-        existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
-        already_existing_aspects = existing_negatives
+        # existing_negatives = db.fetch_negative_aspects(list(set(parent_asins)))  # Fetch for unique parent_asins
+        # already_existing_aspects = existing_negatives
 
-        # Make a list of negative aspects for each parent_asin
-        new_negative_aspects = dict(zip(parent_asins, negative_aspects))
+        # # Make a list of negative aspects for each parent_asin
+        # new_negative_aspects = dict(zip(parent_asins, negative_aspects))
 
-        # Merge new negative aspects with existing ones
-        for parent_asin, aspects in new_negative_aspects.items():
-            if parent_asin in existing_negatives:
-                merged_aspects = self.merge_aspects(aspects, existing_negatives[parent_asin])
-            else:
-                merged_aspects = aspects  # If no existing aspects, use new aspects directly
-            existing_negatives[parent_asin] = merged_aspects
+        # # Merge new negative aspects with existing ones
+        # for parent_asin, aspects in new_negative_aspects.items():
+        #     if parent_asin in existing_negatives:
+        #         merged_aspects = self.merge_aspects(aspects, existing_negatives[parent_asin])
+        #     else:
+        #         merged_aspects = aspects  # If no existing aspects, use new aspects directly
+        #     existing_negatives[parent_asin] = merged_aspects
 
-        print("Merged Negatives:", existing_negatives)
+        # print("Merged Negatives:", existing_negatives)
 
-        return existing_negatives, already_existing_aspects
+        # return existing_negatives, already_existing_aspects
    
 
     def categorize_and_merge_aspects(self, negative_aspects, positive_aspects, parent_asins, db):
         unique_parent_asins = list(set(parent_asins))  # Get unique parent_asins
+        print("*Unique Parent ASINs:", unique_parent_asins)
+        print(negative_aspects)
+        print(positive_aspects)
         # Fetch existing negative aspects (keyword: frequency) from the products table
         existing_negatives, existing_positives = db.fetch_aspects(unique_parent_asins)  # Fetch for unique parent_asins
         print("Existing Negatives:", existing_negatives)
@@ -188,8 +213,7 @@ class ReviewProcessor:
         # old_positive_aspects = existing_positives.copy()
 
         # Make a dictionary of negative aspects for each parent_asin (new aspects in keyword: frequency format)
-        new_negative_aspects = dict(zip(unique_parent_asins, negative_aspects))
-        new_positive_aspects = dict(zip(unique_parent_asins, positive_aspects))
+        new_positive_aspects, new_negative_aspects = self.merge_lists(unique_parent_asins, positive_aspects, negative_aspects)
 
         print("New Negatives:", new_negative_aspects)
         print("New Positives:", new_positive_aspects)
@@ -250,7 +274,27 @@ class ReviewProcessor:
         return existing_negatives, existing_positives, unique_parent_asins, new_changes  # Return the updated dictionary
 
     
+    def merge_lists(self, parent_asins, pos_lst, neg_lst):
+        positive_asin_aspects = defaultdict(list)
+        negative_asin_aspects = defaultdict(list)
 
+        print("pos_lst:", pos_lst)
+        print("neg_lst:", neg_lst)
+
+        # Iterate over the parent_asins, positive and negative aspects
+        for asin, pos_aspects, neg_aspects in zip(parent_asins, pos_lst, neg_lst):
+            # Only add to dictionaries if the lists are not empty
+            if pos_aspects:
+                positive_asin_aspects[asin].extend(pos_aspects)
+            if neg_aspects:
+                negative_asin_aspects[asin].extend(neg_aspects)
+
+        
+        positive_asin_aspects = dict(positive_asin_aspects)
+        negative_asin_aspects = dict(negative_asin_aspects)
+        return positive_asin_aspects, negative_asin_aspects
+    
+        
     # def categorize_and_merge_aspects(self, negative_aspects, positive_aspects, parent_asins, db):
     #     # Step 1: Get unique parent_asins
     #     unique_parent_asins = list(set(parent_asins))
