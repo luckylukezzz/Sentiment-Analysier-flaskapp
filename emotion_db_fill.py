@@ -3,14 +3,18 @@ import pandas as pd
 from transformers import pipeline
 
 class EmotionExtractor:
-    def __init__(self, model_path="./models/distilbert-base-uncased-finetuned-emotion"):
-        # Initialize the pre-trained classifier model for emotion extraction
+
+    def __init__(self, model_name="transformersbook/distilbert-base-uncased-finetuned-emotion"):
+
+        model_path = r"./models/distilbert-base-uncased-finetuned-emotion"
+
         try:
             self.classifier = pipeline("text-classification", model=model_path)
-            print(f"Model loaded successfully from {model_path}")
+            print("Emotion Model loaded successfully from disk")
         except Exception as e:
-            print(f"Error loading model: {e}")
-            raise
+            print(f"Error loading Emotion Model from disk: {str(e)}")
+            self.classifier = pipeline("text-classification", model="transformersbook/distilbert-base-uncased-finetuned-emotion")
+            print("Emotion Model loaded from internet successfully")
 
     # Get the highest scored emotion
     @staticmethod
@@ -37,7 +41,7 @@ class EmotionExtractor:
             # Loop through the list of reviews
             for review in reviews:
                 # Predict emotion and get the score for each review
-                preds = self.classifier(review, return_all_scores=True)
+                preds = self.classifier(review, top_k=None)
                 emotion, score = self.get_highest_scored_emotion(preds)
 
                 # Append the emotion and score to the respective lists
