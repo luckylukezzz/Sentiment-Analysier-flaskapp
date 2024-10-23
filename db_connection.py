@@ -48,7 +48,7 @@ class DBConnection:
         self.conn.commit()
 
     def fetch_reviews(self):
-        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 20")
+        self.cursor.execute("SELECT review_id, parent_asin, text, timestamp FROM reviews WHERE is_predicted IS NULL LIMIT 5")
         print("Fetching reviews...")
         return self.cursor.fetchall()
 
@@ -97,6 +97,41 @@ class DBConnection:
             )
         self.conn.commit()
         print("Sentiment scores updated successfully.")
+
+    def update_emotions(self, review_ids, emotions, scores):
+        for i in range(len(review_ids)):
+            # Ensure that score is a float, and emotion is a string
+            self.cursor.execute(
+                "UPDATE reviews SET emotion = %s, emo_score = %s WHERE review_id = %s",
+                (emotions[i], float(scores[i]), review_ids[i])  # Ensure score is converted to float
+            )
+        self.conn.commit()
+        print("Emotions updated successfully.")
+
+    def update_aspect_scores(self, review_ids, aspect_results):
+        for i in range(len(review_ids)):
+            self.cursor.execute(
+                "UPDATE reviews SET aspect_quality = %s, quality_score = %s, aspect_price = %s, price_score = %s, aspect_shipping = %s, shipping_score = %s, aspect_customer_service = %s, customer_service_score = %s, aspect_warranty = %s, warranty_score = %s WHERE review_id = %s",
+                (
+                    aspect_results[i]['aspect_quality'], aspect_results[i]['quality_score'],
+                    aspect_results[i]['aspect_price'], aspect_results[i]['price_score'],
+                    aspect_results[i]['aspect_shipping'], aspect_results[i]['shipping_score'],
+                    aspect_results[i]['aspect_customer_service'], aspect_results[i]['customer_service_score'],
+                    aspect_results[i]['aspect_warranty'], aspect_results[i]['warranty_score'],
+                    review_ids[i]
+                )
+            )
+        self.conn.commit()
+        print("Aspect scores updated successfully.")
+
+    def update_lime_explanations(self, review_ids, lime_explanations):
+        for i in range(len(review_ids)):
+            self.cursor.execute(
+                "UPDATE reviews SET lime = %s WHERE review_id = %s",
+                (json.dumps(lime_explanations[i]), review_ids[i])
+            )
+        self.conn.commit()
+        print("LIME explanations updated successfully.")
 
     def update_timestamps(self, review_ids, timestamps):
         for i in range (len(review_ids)):
