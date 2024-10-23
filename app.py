@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify
-import mysql.connector
-from mysql.connector import Error
-from dotenv import load_dotenv
 from flask_cors import CORS
+from dotenv import load_dotenv
+import mysql.connector
 import os
-import process_reviews
 from scraper.scrape_with_asin import scrape_reviews_final
-from celery import Celery
+from threading import Thread
+import process_reviews
 
 load_dotenv()
 
@@ -33,53 +32,32 @@ db = mysql.connector.connect(
 cursor = db.cursor(dictionary=True)
 
 api_token = os.getenv("GROQ_API_KEY")
+import subprocess
+from multiprocessing import Process
 
-# Celery configuration
-celery = Celery(
-    app.name,
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/0'
-)
-celery.conf.update(app.config)
+def run_scraper(asin):
+    try:
+        scrape_reviews_final(asin)
+        processor_review = process_reviews.ReviewProcessor(api_token)
+        processor_review.process()
+        print(f"Task completed for ASIN: {asin}")
+    except Exception as e:
+        print(f"Error occurred while processing ASIN {asin}: {str(e)}")
 
-
-@celery.task
-def async_scrape_reviews(asin):
-    scrape_reviews_final(asin)
-    return f"Scraping completed for ASIN: {asin}"
-
-
-@app.route('/scrape', methods=['POST'])
-def start_scrape():
+@app.route('/run_task', methods=['POST'])
+def run_task():
     data = request.json
-    if not data or 'asin' not in data:
+    asin = data.get('asin')
+    
+    if not asin:
         return jsonify({"error": "ASIN is required"}), 400
+    
+    # Run the scraper in a separate process
+    process = Process(target=run_scraper, args=(asin,))
+    process.start()
 
-    asin = data['asin']
-    task = async_scrape_reviews.delay(asin)
-    return jsonify({"message": "Scraping task started", "task_id": str(task.id)}), 202
-
-
-@app.route('/task/<task_id>', methods=['GET'])
-def get_task_status(task_id):
-    task = async_scrape_reviews.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'status': 'Task is waiting for execution'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'status': str(task.info)
-        }
-    else:
-        response = {
-            'state': task.state,
-            'status': str(task.info)
-        }
-    return jsonify(response)
-
+    return jsonify({"message": f"Task started for ASIN: {asin}"}), 202
 
 if __name__ == '__main__':
     app.run(debug=True)
+
