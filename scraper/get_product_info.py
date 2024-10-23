@@ -19,13 +19,14 @@ host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
+port = os.getenv('PORT')
 
 
 def get_product_html(asin):
     url = f"https://www.amazon.com/dp/{asin}/"
     
     with sync_playwright() as p:
-        browser = p.firefox.launch(headless=False, slow_mo=100)
+        browser = p.firefox.launch(headless=True, slow_mo=100)
         page = browser.new_page()
         
         try:
@@ -116,11 +117,13 @@ def asin_exists_in_csv(asin, filename='product_data.csv'):
 def insert_into_mysql(data):
     connection = None
     try:
-        conn = mysql.connector.connect(
+        connection = mysql.connector.connect(
             host=host,
             user=user,
+            port=port,
             password=password,
             database=database,
+            ssl_disabled=False,
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci'
         )
@@ -192,5 +195,5 @@ def product_info(asin):
         return False
 
 # Example usage
-result = product_info('B079FPFV3X')
-logging.info(f"Product info result: {result}")
+#result = product_info('B079FPFV3X')
+#logging.info(f"Product info result: {result}")

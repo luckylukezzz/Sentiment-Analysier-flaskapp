@@ -7,11 +7,13 @@ load_dotenv()
 host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
+port = os.getenv('PORT')
 password = os.getenv('PASSWORD')
 
 db = mysql.connector.connect(
     host=host,
     user=user,
+    port=port,
     password=password,
     database=database
 )

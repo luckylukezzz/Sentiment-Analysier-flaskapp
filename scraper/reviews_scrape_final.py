@@ -5,7 +5,7 @@ import mysql.connector
 import csv
 from datetime import datetime
 import os
-from components.scrape_ops_headers import get_headers
+from scraper.components.scrape_ops_headers import get_headers
 from dotenv import load_dotenv
 import logging
 import re
@@ -21,6 +21,7 @@ host = os.getenv('HOST')
 database = os.getenv('DATABASE')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
+port = os.getenv('PORT')
 
 def clean_text(text):
     # Remove emojis and other problematic characters
@@ -41,6 +42,8 @@ def get_db_connection():
             user=user,
             password=password,
             database=database,
+            port=port,
+            ssl_disabled=False,
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci'
         )
@@ -178,4 +181,3 @@ def scrape_reviews(asin):
         logging.error(f"scrape reviews function error: {e}")
         return False 
     
-scrape_reviews("B079FPFV3X")

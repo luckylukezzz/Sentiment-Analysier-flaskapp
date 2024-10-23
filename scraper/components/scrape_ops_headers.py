@@ -9,5 +9,3 @@ def get_headers():
   )
 
   return (response.json())
-
-# print(get_headers())

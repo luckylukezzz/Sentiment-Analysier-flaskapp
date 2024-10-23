@@ -8,10 +8,11 @@ class EmotionExtractor:
         self.max_length = max_length
         try:
             self.classifier = pipeline("text-classification", model=model_path)
-            print(f"Model loaded successfully from {model_path}")
+            print("Emotion Model loaded successfully from disk")
         except Exception as e:
-            print(f"Error loading model: {e}")
-            raise
+            print(f"Error loading Emotion Model from disk: {str(e)}")
+            self.classifier = pipeline("text-classification", model="transformersbook/distilbert-base-uncased-finetuned-emotion")
+            print("Emotion Model loaded from internet successfully")
 
     # Get the highest scored emotion
     @staticmethod
