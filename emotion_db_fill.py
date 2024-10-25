@@ -50,7 +50,7 @@ class EmotionExtractor:
                     chunk_emotions.append(emotion)
                     chunk_scores.append(score)
 
-                # Aggregate results from all chunks (you could average scores, take the majority emotion, etc.)
+                # Aggregate results from all chunks 
                 final_emotion = max(set(chunk_emotions), key=chunk_emotions.count)
                 final_score = sum(chunk_scores) / len(chunk_scores) if chunk_scores else 0
 
@@ -64,32 +64,4 @@ class EmotionExtractor:
 
 
 
-    # try:
-    #     # Fetch data from the reviews table where emotion or emo_score is missing
-    #     query = "SELECT review_id, text FROM reviews WHERE emotion IS NULL OR emo_score IS NULL;"
-    #     reviews_df = pd.read_sql(query, conn)
-
-    #     # Loop through the dataframe to predict emotions and update the table
-    #     for index, row in reviews_df.iterrows():
-    #         review_id = row['review_id']
-    #         text = row['text']
-            
-    #         # Predict emotion and score
-    #         preds = classifier(text, return_all_scores=True)
-    #         emotion, score = get_highest_scored_emotion(preds)
-            
-    #         # Update the reviews table with the predicted values
-    #         update_query = """
-    #             UPDATE reviews
-    #             SET emotion = %s, emo_score = %s
-    #             WHERE review_id = %s;
-    #         """
-    #         cursor.execute(update_query, (emotion, score, review_id))
-    #         conn.commit()
-    #         print(f"Updated review_id {review_id}: Emotion = {emotion}, Score = {score:.4f}")
-
-    # finally:
-    #     # Close the cursor and the database connection
-    #     cursor.close()
-    #     conn.close()
 
